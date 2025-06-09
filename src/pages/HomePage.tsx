@@ -1,11 +1,12 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { FiPackage, FiCode, FiGrid, FiShoppingBag, FiUsers, FiImage } from 'react-icons/fi'
+import { FiPackage, FiCode, FiGrid, FiShoppingBag, FiUsers, FiImage, FiArrowRight } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import HeroSection from '../components/home/HeroSection'
 import PluginOption from '../components/home/PluginOption'
 import '../styles/home.css'
+import { Link } from 'react-router-dom'
 
 const HomePage = () => {
   const prebuiltPlugins = [
@@ -74,14 +75,11 @@ const HomePage = () => {
                 <p className="option-description">
                   Choose from our collection of professionally designed plugin templates. Customize to fit your needs and deploy in minutes.
                 </p>
-                <motion.a 
-                  href="/plugins/templates" 
-                  className="option-button"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Browse Templates
-                </motion.a>
+                {/* Updated to match hero-button styling */}
+                <Link to="/templates" className="hero-button primary">
+                  <span>Browse Templates</span>
+                  <FiArrowRight />
+                </Link>
               </motion.div>
               
               <motion.div 
@@ -101,14 +99,11 @@ const HomePage = () => {
                 <p className="option-description">
                   Build a completely custom WordPress plugin from scratch. Our intuitive builder makes it easy, even without coding experience.
                 </p>
-                <motion.a 
-                  href="/plugins/create" 
-                  className="option-button"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Create Custom Plugin
-                </motion.a>
+                {/* Updated to match hero-button styling */}
+                <Link to="/plugins/create" className="hero-button primary">
+                  <span>Create Custom Plugin</span>
+                  <FiArrowRight />
+                </Link>
               </motion.div>
             </div>
           </div>
@@ -153,9 +148,9 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <a href="/plugins/templates" className="view-all-link">
+              <Link to="/templates" className="view-all-link">
                 View All Templates <FiGrid />
-              </a>
+              </Link>
             </motion.div>
           </div>
         </section>

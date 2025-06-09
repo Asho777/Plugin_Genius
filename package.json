@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev": "npx --yes vite",
+    "build": "tsc && npx --yes vite build",
+    "preview": "npx --yes vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
