@@ -17,8 +17,6 @@
   background: linear-gradient(to bottom, var(--color-black), var(--color-dark-gray));
   position: relative;
   overflow: hidden;
-  padding-left: 25px;
-  padding-right: 25px;
 }
 
 .hero-content {
@@ -26,12 +24,16 @@
   max-width: 800px;
   margin: 0 auto;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center content horizontally */
 }
 
 .hero-title {
   font-size: 2.5rem;
   margin-bottom: var(--spacing-lg);
   line-height: 1.2;
+  text-align: center; /* Ensure text is centered */
 }
 
 .hero-title span {
@@ -45,6 +47,7 @@
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  text-align: center; /* Ensure text is centered */
 }
 
 .hero-actions {
@@ -52,6 +55,7 @@
   flex-direction: column;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
+  align-items: center; /* Center buttons */
 }
 
 .hero-button {
@@ -97,6 +101,8 @@
   width: 100%;
   max-width: 800px;
   z-index: 1;
+  display: flex;
+  justify-content: center; /* Center image container */
 }
 
 .hero-image-container {
@@ -104,6 +110,7 @@
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 215, 0, 0.2);
+  max-width: 100%; /* Ensure container doesn't exceed parent width */
 }
 
 .hero-img {
@@ -307,8 +314,6 @@
     flex-direction: row;
     justify-content: space-between;
     padding: var(--spacing-xxl) var(--spacing-lg);
-    padding-left: 25px;
-    padding-right: 25px;
     min-height: 600px;
   }
   
@@ -316,23 +321,29 @@
     text-align: left;
     margin: 0;
     max-width: 50%;
+    align-items: flex-start; /* Align items to the start on desktop */
+    padding-left: 25px; /* Add 25px padding on the left for desktop */
   }
   
-  .hero-title span {
-    display: inline;
+  .hero-title {
+    text-align: left; /* Left align text on desktop */
   }
   
   .hero-subtitle {
+    text-align: left; /* Left align text on desktop */
     margin-left: 0;
     margin-right: 0;
   }
   
   .hero-actions {
     justify-content: flex-start;
+    align-items: flex-start; /* Align items to the start on desktop */
   }
   
   .hero-image {
     margin-top: 0;
     max-width: 45%;
+    justify-content: flex-end; /* Align image to the end of its column */
+    padding-right: 25px; /* Add 25px padding on the right for desktop */
   }
 }
