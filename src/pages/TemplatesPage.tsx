@@ -1,0 +1,329 @@
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { FiSearch, FiFilter, FiStar, FiDownload, FiInfo, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi'
+import Navbar from '../components/layout/Navbar'
+import Footer from '../components/layout/Footer'
+import PluginCard from '../components/templates/PluginCard'
+import PluginDetailModal from '../components/templates/PluginDetailModal'
+import { fetchWordPressPlugins } from '../services/wordpressApi'
+import '../styles/templates.css'
+
+export interface Plugin {
+  id: string
+  name: string
+  description: string
+  author: string
+  rating: number
+  downloads: number
+  lastUpdated: string
+  tags: string[]
+  imageUrl: string
+  detailUrl: string
+}
+
+const TemplatesPage = () => {
+  const [plugins, setPlugins] = useState<Plugin[]>([])
+  const [filteredPlugins, setFilteredPlugins] = useState<Plugin[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    category: 'all',
+    minRating: 0,
+    sortBy: 'popular'
+  })
+  
+  const categories = [
+    { id: 'all', name: 'All Categories' },
+    { id: 'ecommerce', name: 'E-Commerce' },
+    { id: 'seo', name: 'SEO' },
+    { id: 'security', name: 'Security' },
+    { id: 'social', name: 'Social Media' },
+    { id: 'forms', name: 'Forms' },
+    { id: 'gallery', name: 'Gallery' },
+    { id: 'performance', name: 'Performance' }
+  ]
+
+  useEffect(() => {
+    const loadPlugins = async () => {
+      try {
+        setLoading(true)
+        const data = await fetchWordPressPlugins()
+        setPlugins(data)
+        setFilteredPlugins(data)
+      } catch (err) {
+        setError('Failed to load plugins. Please try again later.')
+        console.error('Error loading plugins:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadPlugins()
+  }, [])
+  
+  useEffect(() => {
+    // Apply filters and search
+    let results = [...plugins]
+    
+    // Apply category filter
+    if (filters.category !== 'all') {
+      results = results.filter(plugin => 
+        plugin.tags.some(tag => tag.toLowerCase().includes(filters.category.toLowerCase()))
+      )
+    }
+    
+    // Apply rating filter
+    if (filters.minRating > 0) {
+      results = results.filter(plugin => plugin.rating >= filters.minRating)
+    }
+    
+    // Apply search term
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      results = results.filter(plugin => 
+        plugin.name.toLowerCase().includes(term) || 
+        plugin.description.toLowerCase().includes(term) ||
+        plugin.tags.some(tag => tag.toLowerCase().includes(term))
+      )
+    }
+    
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'popular':
+        results.sort((a, b) => b.downloads - a.downloads)
+        break
+      case 'rating':
+        results.sort((a, b) => b.rating - a.rating)
+        break
+      case 'newest':
+        results.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+        break
+      default:
+        break
+    }
+    
+    setFilteredPlugins(results)
+  }, [plugins, filters, searchTerm])
+  
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+  }
+  
+  const handleFilterChange = (key: string, value: string | number) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
+  
+  const toggleFilters = () => {
+    setShowFilters(!showFilters)
+  }
+  
+  const clearFilters = () => {
+    setFilters({
+      category: 'all',
+      minRating: 0,
+      sortBy: 'popular'
+    })
+    setSearchTerm('')
+  }
+  
+  const openPluginDetail = (plugin: Plugin) => {
+    setSelectedPlugin(plugin)
+  }
+  
+  const closePluginDetail = () => {
+    setSelectedPlugin(null)
+  }
+
+  return (
+    <div className="templates-page">
+      <Navbar />
+      
+      <main className="templates-content">
+        <section className="templates-header">
+          <div className="container">
+            <motion.h1 
+              className="page-title"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              Browse WordPress Plugins
+            </motion.h1>
+            
+            <motion.p 
+              className="page-subtitle"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              Discover and integrate popular WordPress plugins into your custom solution
+            </motion.p>
+            
+            <motion.div 
+              className="search-container"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <div className="search-input-wrapper">
+                <FiSearch className="search-icon" />
+                <input 
+                  type="text" 
+                  className="search-input" 
+                  placeholder="Search plugins..." 
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+                {searchTerm && (
+                  <button className="search-clear" onClick={() => setSearchTerm('')}>
+                    <FiX />
+                  </button>
+                )}
+              </div>
+              
+              <button 
+                className={`filter-toggle ${showFilters ? 'active' : ''}`} 
+                onClick={toggleFilters}
+              >
+                <FiFilter />
+                <span>Filters</span>
+                {showFilters ? <FiChevronUp /> : <FiChevronDown />}
+              </button>
+            </motion.div>
+            
+            <motion.div 
+              className="filters-container"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ 
+                height: showFilters ? 'auto' : 0,
+                opacity: showFilters ? 1 : 0
+              }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="filters-content">
+                <div className="filter-group">
+                  <label className="filter-label">Category</label>
+                  <select 
+                    className="filter-select"
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                  >
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="filter-group">
+                  <label className="filter-label">Minimum Rating</label>
+                  <select 
+                    className="filter-select"
+                    value={filters.minRating}
+                    onChange={(e) => handleFilterChange('minRating', Number(e.target.value))}
+                  >
+                    <option value={0}>Any Rating</option>
+                    <option value={3}>3+ Stars</option>
+                    <option value={4}>4+ Stars</option>
+                    <option value={4.5}>4.5+ Stars</option>
+                  </select>
+                </div>
+                
+                <div className="filter-group">
+                  <label className="filter-label">Sort By</label>
+                  <select 
+                    className="filter-select"
+                    value={filters.sortBy}
+                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  >
+                    <option value="popular">Most Popular</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="newest">Recently Updated</option>
+                  </select>
+                </div>
+                
+                <button className="filter-clear" onClick={clearFilters}>
+                  Clear Filters
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+        
+        <section className="templates-results">
+          <div className="container">
+            {loading ? (
+              <div className="loading-container">
+                <div className="loading-spinner">
+                  <motion.div 
+                    className="spinner"
+                    animate={{ rotate: 360 }}
+                    transition={{ 
+                      repeat: Infinity, 
+                      duration: 1.5, 
+                      ease: "linear" 
+                    }}
+                  />
+                </div>
+                <p>Loading plugins...</p>
+              </div>
+            ) : error ? (
+              <div className="error-container">
+                <FiInfo className="error-icon" />
+                <p>{error}</p>
+                <button className="retry-button" onClick={() => window.location.reload()}>
+                  Try Again
+                </button>
+              </div>
+            ) : filteredPlugins.length === 0 ? (
+              <div className="no-results">
+                <h3>No plugins found</h3>
+                <p>Try adjusting your search or filters to find what you're looking for.</p>
+                <button className="filter-clear" onClick={clearFilters}>
+                  Clear All Filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="results-header">
+                  <p className="results-count">
+                    Showing <span>{filteredPlugins.length}</span> plugins
+                  </p>
+                </div>
+                
+                <div className="plugins-grid">
+                  {filteredPlugins.map((plugin, index) => (
+                    <PluginCard 
+                      key={plugin.id}
+                      plugin={plugin}
+                      onClick={() => openPluginDetail(plugin)}
+                      delay={0.1 + (index % 12) * 0.05}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+      </main>
+      
+      <Footer />
+      
+      {selectedPlugin && (
+        <PluginDetailModal 
+          plugin={selectedPlugin}
+          onClose={closePluginDetail}
+        />
+      )}
+    </div>
+  )
+}
+
+export default TemplatesPage

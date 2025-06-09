@@ -1,0 +1,126 @@
+.footer {
+  background-color: var(--color-dark-gray);
+  padding: var(--spacing-xl) 0;
+  margin-top: var(--spacing-xxl);
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.footer-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+.footer-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+}
+
+.footer-brand-text {
+  margin-left: var(--spacing-sm);
+}
+
+.footer-logo-text {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-white);
+}
+
+.footer-logo-text span {
+  color: var(--color-primary);
+}
+
+.footer-tagline {
+  color: var(--color-light-gray);
+  font-size: 0.9rem;
+  margin-top: var(--spacing-xs);
+}
+
+.footer-links {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.footer-links-title {
+  color: var(--color-primary);
+  font-size: 1rem;
+  margin-bottom: var(--spacing-md);
+  font-weight: 600;
+}
+
+.footer-link {
+  display: block;
+  color: var(--color-light-gray);
+  text-decoration: none;
+  margin-bottom: var(--spacing-sm);
+  transition: color 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.footer-link:hover {
+  color: var(--color-white);
+}
+
+.footer-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.footer-copyright {
+  color: var(--color-light-gray);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.footer-social {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--color-light-gray);
+  transition: all 0.2s ease;
+}
+
+.social-link:hover {
+  background-color: var(--color-primary);
+  color: var(--color-black);
+  transform: translateY(-3px);
+}
+
+@media (min-width: 768px) {
+  .footer-top {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .footer-links {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xl);
+  }
+  
+  .footer-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}

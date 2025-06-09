@@ -1,0 +1,402 @@
+/* My Plugins Page Styles */
+
+.my-plugins-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.my-plugins-content {
+  flex: 1;
+  padding-bottom: 60px;
+}
+
+/* Header Section */
+.my-plugins-header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  padding: 60px 0 40px;
+  color: #fff;
+}
+
+.my-plugins-header .page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, #ffd700, #ffaa00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.my-plugins-header .page-subtitle {
+  font-size: 1.2rem;
+  max-width: 700px;
+  margin-bottom: 32px;
+  color: #e0e0e0;
+}
+
+/* Search and Add Button */
+.search-container {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 600px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #777;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.search-input::placeholder {
+  color: #777;
+}
+
+.search-clear {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #777;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.search-clear:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.add-plugin-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px;
+  height: 48px;
+  background-color: #ffd700;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.add-plugin-button:hover {
+  background-color: #ffaa00;
+  transform: translateY(-2px);
+}
+
+.add-plugin-button svg {
+  font-size: 1.2rem;
+}
+
+/* My Plugins List Section */
+.my-plugins-list {
+  padding: 40px 0;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.results-count {
+  font-size: 1rem;
+  color: #777;
+}
+
+.results-count span {
+  font-weight: 600;
+  color: #ffd700;
+}
+
+.my-plugins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+/* My Plugin Card */
+.my-plugin-card {
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.my-plugin-card .plugin-card-image {
+  height: 140px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+}
+
+.my-plugin-card .plugin-card-image img {
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: contain;
+}
+
+.my-plugin-card .plugin-card-content {
+  padding: 20px;
+  flex: 1;
+}
+
+.my-plugin-card .plugin-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #1a1a1a;
+}
+
+.my-plugin-card .plugin-card-author {
+  font-size: 0.9rem;
+  color: #777;
+  margin-bottom: 12px;
+}
+
+.my-plugin-card .plugin-card-description {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.my-plugin-card .plugin-card-meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.my-plugin-card .plugin-card-rating,
+.my-plugin-card .plugin-card-downloads {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.my-plugin-card .rating-icon {
+  color: #ffd700;
+}
+
+.my-plugin-card .downloads-icon {
+  color: #777;
+}
+
+.my-plugin-card .plugin-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.my-plugin-card .plugin-tag {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  background-color: #f0f0f0;
+  color: #555;
+  border-radius: 16px;
+}
+
+.my-plugin-card .plugin-tag-more {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  background-color: #e0e0e0;
+  color: #555;
+  border-radius: 16px;
+}
+
+.my-plugin-card .plugin-card-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+}
+
+.my-plugin-card .plugin-card-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.my-plugin-card .plugin-action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-decoration: none;
+}
+
+.my-plugin-card .plugin-action-button.view {
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+}
+
+.my-plugin-card .plugin-action-button.view:hover {
+  background-color: #e0e0e0;
+}
+
+.my-plugin-card .plugin-action-button.remove {
+  background-color: transparent;
+  color: #ff4d4d;
+  border: 1px solid #ff4d4d;
+}
+
+.my-plugin-card .plugin-action-button.remove:hover {
+  background-color: #fff0f0;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  color: #ddd;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.empty-state h2 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.empty-state p {
+  color: #777;
+  margin-bottom: 24px;
+}
+
+.empty-state-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background-color: #ffd700;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.empty-state-button:hover {
+  background-color: #ffaa00;
+  transform: translateY(-2px);
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.no-results h3 {
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.no-results p {
+  color: #777;
+  margin-bottom: 20px;
+}
+
+.filter-clear {
+  padding: 8px 16px;
+  background-color: transparent;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-clear:hover {
+  background-color: #f5f5f5;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .my-plugins-header {
+    padding: 40px 0 30px;
+  }
+  
+  .my-plugins-header .page-title {
+    font-size: 2rem;
+  }
+  
+  .search-container {
+    flex-direction: column;
+  }
+  
+  .search-input-wrapper {
+    max-width: 100%;
+  }
+  
+  .add-plugin-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .my-plugins-grid {
+    grid-template-columns: 1fr;
+  }
+}

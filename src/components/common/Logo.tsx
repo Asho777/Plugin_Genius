@@ -1,15 +1,11 @@
 import React from 'react'
+import { FiZap } from 'react-icons/fi'
 
 const Logo = () => {
   return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="32" height="32" rx="4" fill="#111111"/>
-      <path d="M16 6L8 10V22L16 26L24 22V10L16 6Z" fill="#FFD700"/>
-      <path d="M16 14C17.1046 14 18 13.1046 18 12C18 10.8954 17.1046 10 16 10C14.8954 10 14 10.8954 14 12C14 13.1046 14.8954 14 16 14Z" fill="#111111"/>
-      <path d="M16 22C17.1046 22 18 21.1046 18 20C18 18.8954 17.1046 18 16 18C14.8954 18 14 18.8954 14 20C14 21.1046 14.8954 22 16 22Z" fill="#111111"/>
-      <path d="M12 18C13.1046 18 14 17.1046 14 16C14 14.8954 13.1046 14 12 14C10.8954 14 10 14.8954 10 16C10 17.1046 10.8954 18 12 18Z" fill="#111111"/>
-      <path d="M20 18C21.1046 18 22 17.1046 22 16C22 14.8954 21.1046 14 20 14C18.8954 14 18 14.8954 18 16C18 17.1046 18.8954 18 20 18Z" fill="#111111"/>
-    </svg>
+    <div className="logo">
+      <FiZap className="logo-icon" />
+    </div>
   )
 }
 
