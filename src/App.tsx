@@ -10,6 +10,7 @@ import MyPluginsPage from './pages/MyPluginsPage'
 import DocsPage from './pages/DocsPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import CreatePluginPage from './pages/CreatePluginPage'
 import './App.css'
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
       <Route path="/home" element={session ? <HomePage /> : <Navigate to="/" />} />
       <Route path="/templates" element={session ? <TemplatesPage /> : <Navigate to="/" />} />
       <Route path="/plugins" element={session ? <MyPluginsPage /> : <Navigate to="/" />} />
+      <Route path="/plugins/create" element={session ? <CreatePluginPage /> : <Navigate to="/" />} />
       <Route path="/docs" element={session ? <DocsPage /> : <Navigate to="/" />} />
       <Route path="/profile" element={session ? <ProfilePage /> : <Navigate to="/" />} />
       <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/" />} />
