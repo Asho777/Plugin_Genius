@@ -77,11 +77,6 @@ const CreatePluginPage = () => {
     checkApiKey();
   }, [activeAI]);
   
-  // Auto-scroll to bottom of chat
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-  
   // Update code when plugin name changes
   useEffect(() => {
     setCode(`<?php
@@ -115,7 +110,12 @@ add_action('init', 'register_custom_block');`);
   }, [pluginName]);
   
   // Handle sending message to AI
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    // Prevent default form submission behavior if event is provided
+    if (e) {
+      e.preventDefault();
+    }
+    
     if (!userMessage.trim() || isLoading) return;
     
     // Add user message to chat
@@ -332,7 +332,10 @@ add_action('init', 'register_custom_block');`);
                         <div ref={messagesEndRef} />
                       </div>
                       
-                      <div className="chat-input-container">
+                      <form 
+                        className="chat-input-container" 
+                        onSubmit={handleSendMessage}
+                      >
                         <textarea 
                           className="chat-input" 
                           placeholder="Type your message here..."
@@ -347,13 +350,14 @@ add_action('init', 'register_custom_block');`);
                           disabled={isLoading || apiKeyMissing}
                         ></textarea>
                         <button 
+                          type="button" 
                           className="chat-send-button"
-                          onClick={handleSendMessage}
+                          onClick={() => handleSendMessage()}
                           disabled={isLoading || apiKeyMissing}
                         >
                           Send
                         </button>
-                      </div>
+                      </form>
                     </div>
                   )}
                   

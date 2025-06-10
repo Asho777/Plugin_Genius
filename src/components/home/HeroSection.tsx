@@ -36,7 +36,7 @@ const HeroSection = () => {
             <FiArrowRight />
           </Link>
           <Link to="/templates" className="hero-button primary">
-            <span>Browse Templates</span>
+            <span>Wordpress Plugins</span>
             <FiArrowRight />
           </Link>
         </motion.div>

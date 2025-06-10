@@ -4,6 +4,13 @@ import { FiSave, FiKey, FiShield, FiUser, FiMail, FiGlobe } from 'react-icons/fi
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import { AI_MODELS, getApiKey, saveApiKey } from '../services/aiService'
+import { 
+  getUserProfile, updateUserProfile, 
+  getUserSecurity, updateUserSecurity, updateUserPassword, 
+  getUserNotifications, updateUserNotifications,
+  getUserPreferences, updateUserPreferences,
+  UserProfile, UserNotifications, UserPreferences, UserSecurity
+} from '../services/settingsService'
 import '../styles/settings.css'
 
 const SettingsPage = () => {
@@ -16,6 +23,35 @@ const SettingsPage = () => {
   })
   const [loading, setLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  
+  // User settings state
+  const [profile, setProfile] = useState<UserProfile>({
+    full_name: '',
+    email: '',
+    company: ''
+  })
+  
+  const [security, setSecurity] = useState<UserSecurity>({
+    two_factor_enabled: false
+  })
+  
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  })
+  
+  const [notifications, setNotifications] = useState<UserNotifications>({
+    email_notifications: true,
+    update_notifications: true,
+    marketing_notifications: false
+  })
+  
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    language: 'en',
+    timezone: 'utc',
+    dark_mode: true
+  })
   
   // Load API keys
   useEffect(() => {
@@ -31,6 +67,45 @@ const SettingsPage = () => {
     };
     
     loadApiKeys();
+  }, []);
+  
+  // Load user settings
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      try {
+        setLoading(true);
+        
+        // Load profile
+        const userProfile = await getUserProfile();
+        if (userProfile) {
+          setProfile(userProfile);
+        }
+        
+        // Load security settings
+        const userSecurity = await getUserSecurity();
+        if (userSecurity) {
+          setSecurity(userSecurity);
+        }
+        
+        // Load notifications
+        const userNotifications = await getUserNotifications();
+        if (userNotifications) {
+          setNotifications(userNotifications);
+        }
+        
+        // Load preferences
+        const userPreferences = await getUserPreferences();
+        if (userPreferences) {
+          setPreferences(userPreferences);
+        }
+      } catch (error) {
+        console.error('Error loading user settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUserSettings();
   }, []);
   
   // Handle save API keys
@@ -49,6 +124,118 @@ const SettingsPage = () => {
     } catch (error) {
       console.error('Error saving API keys:', error);
       alert('Error saving API keys. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle save profile
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    
+    try {
+      const updatedProfile = await updateUserProfile(profile);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        alert('Error saving profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Error saving profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle save security settings
+  const handleSaveSecurity = async () => {
+    setLoading(true);
+    
+    try {
+      const updatedSecurity = await updateUserSecurity(security);
+      if (updatedSecurity) {
+        setSecurity(updatedSecurity);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        alert('Error saving security settings. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving security settings:', error);
+      alert('Error saving security settings. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle save password
+  const handleSavePassword = async () => {
+    setLoading(true);
+    
+    try {
+      if (passwords.new !== passwords.confirm) {
+        alert('New passwords do not match.');
+        setLoading(false);
+        return;
+      }
+      
+      const success = await updateUserPassword(passwords.current, passwords.new);
+      
+      if (success) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        setPasswords({ current: '', new: '', confirm: '' });
+      } else {
+        alert('Failed to update password. Please check your current password and try again.');
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      alert('Error updating password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle save notifications
+  const handleSaveNotifications = async () => {
+    setLoading(true);
+    
+    try {
+      const updatedNotifications = await updateUserNotifications(notifications);
+      if (updatedNotifications) {
+        setNotifications(updatedNotifications);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        alert('Error saving notification preferences. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving notifications:', error);
+      alert('Error saving notification preferences. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle save preferences
+  const handleSavePreferences = async () => {
+    setLoading(true);
+    
+    try {
+      const updatedPreferences = await updateUserPreferences(preferences);
+      if (updatedPreferences) {
+        setPreferences(updatedPreferences);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        alert('Error saving preferences. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      alert('Error saving preferences. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -170,6 +357,8 @@ const SettingsPage = () => {
                         id="name"
                         type="text"
                         placeholder="Enter your full name"
+                        value={profile.full_name || ''}
+                        onChange={(e) => setProfile({...profile, full_name: e.target.value})}
                       />
                     </div>
                     
@@ -179,6 +368,8 @@ const SettingsPage = () => {
                         id="email"
                         type="email"
                         placeholder="Enter your email address"
+                        value={profile.email || ''}
+                        onChange={(e) => setProfile({...profile, email: e.target.value})}
                       />
                     </div>
                     
@@ -188,13 +379,19 @@ const SettingsPage = () => {
                         id="company"
                         type="text"
                         placeholder="Enter your company name"
+                        value={profile.company || ''}
+                        onChange={(e) => setProfile({...profile, company: e.target.value})}
                       />
                     </div>
                     
                     <div className="account-actions">
-                      <button className="save-button">
+                      <button 
+                        className={`save-button ${saveSuccess ? 'success' : ''}`}
+                        onClick={handleSaveProfile}
+                        disabled={loading}
+                      >
                         <FiSave />
-                        <span>Save Changes</span>
+                        <span>{loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Changes'}</span>
                       </button>
                     </div>
                   </div>
@@ -209,12 +406,38 @@ const SettingsPage = () => {
                   </p>
                   
                   <div className="security-form">
+                    <div className="form-group checkbox">
+                      <input 
+                        id="two-factor" 
+                        type="checkbox" 
+                        checked={security.two_factor_enabled}
+                        onChange={(e) => setSecurity({...security, two_factor_enabled: e.target.checked})}
+                      />
+                      <label htmlFor="two-factor">Two-Factor Authentication</label>
+                      <p className="help-text">Enable two-factor authentication for additional security.</p>
+                    </div>
+                    
+                    <div className="security-actions">
+                      <button 
+                        className={`save-button ${saveSuccess ? 'success' : ''}`}
+                        onClick={handleSaveSecurity}
+                        disabled={loading}
+                      >
+                        <FiSave />
+                        <span>{loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Security Settings'}</span>
+                      </button>
+                    </div>
+                    
+                    <h3 className="section-title">Change Password</h3>
+                    
                     <div className="form-group">
                       <label htmlFor="current-password">Current Password</label>
                       <input
                         id="current-password"
                         type="password"
                         placeholder="Enter your current password"
+                        value={passwords.current}
+                        onChange={(e) => setPasswords({...passwords, current: e.target.value})}
                       />
                     </div>
                     
@@ -224,6 +447,8 @@ const SettingsPage = () => {
                         id="new-password"
                         type="password"
                         placeholder="Enter your new password"
+                        value={passwords.new}
+                        onChange={(e) => setPasswords({...passwords, new: e.target.value})}
                       />
                     </div>
                     
@@ -233,13 +458,19 @@ const SettingsPage = () => {
                         id="confirm-password"
                         type="password"
                         placeholder="Confirm your new password"
+                        value={passwords.confirm}
+                        onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
                       />
                     </div>
                     
                     <div className="security-actions">
-                      <button className="save-button">
+                      <button 
+                        className={`save-button ${saveSuccess ? 'success' : ''}`}
+                        onClick={handleSavePassword}
+                        disabled={loading}
+                      >
                         <FiSave />
-                        <span>Update Password</span>
+                        <span>{loading ? 'Updating...' : saveSuccess ? 'Updated!' : 'Update Password'}</span>
                       </button>
                     </div>
                   </div>
@@ -255,27 +486,46 @@ const SettingsPage = () => {
                   
                   <div className="notifications-form">
                     <div className="form-group checkbox">
-                      <input id="email-notifications" type="checkbox" />
+                      <input 
+                        id="email-notifications" 
+                        type="checkbox" 
+                        checked={notifications.email_notifications}
+                        onChange={(e) => setNotifications({...notifications, email_notifications: e.target.checked})}
+                      />
                       <label htmlFor="email-notifications">Email Notifications</label>
                       <p className="help-text">Receive email notifications about your plugins and account.</p>
                     </div>
                     
                     <div className="form-group checkbox">
-                      <input id="update-notifications" type="checkbox" />
+                      <input 
+                        id="update-notifications" 
+                        type="checkbox"
+                        checked={notifications.update_notifications}
+                        onChange={(e) => setNotifications({...notifications, update_notifications: e.target.checked})}
+                      />
                       <label htmlFor="update-notifications">Product Updates</label>
                       <p className="help-text">Receive notifications about new features and updates.</p>
                     </div>
                     
                     <div className="form-group checkbox">
-                      <input id="marketing-notifications" type="checkbox" />
+                      <input 
+                        id="marketing-notifications" 
+                        type="checkbox"
+                        checked={notifications.marketing_notifications}
+                        onChange={(e) => setNotifications({...notifications, marketing_notifications: e.target.checked})}
+                      />
                       <label htmlFor="marketing-notifications">Marketing Communications</label>
                       <p className="help-text">Receive marketing communications and special offers.</p>
                     </div>
                     
                     <div className="notifications-actions">
-                      <button className="save-button">
+                      <button 
+                        className={`save-button ${saveSuccess ? 'success' : ''}`}
+                        onClick={handleSaveNotifications}
+                        disabled={loading}
+                      >
                         <FiSave />
-                        <span>Save Preferences</span>
+                        <span>{loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Preferences'}</span>
                       </button>
                     </div>
                   </div>
@@ -292,7 +542,11 @@ const SettingsPage = () => {
                   <div className="preferences-form">
                     <div className="form-group">
                       <label htmlFor="language">Language</label>
-                      <select id="language">
+                      <select 
+                        id="language"
+                        value={preferences.language}
+                        onChange={(e) => setPreferences({...preferences, language: e.target.value})}
+                      >
                         <option value="en">English</option>
                         <option value="es">Spanish</option>
                         <option value="fr">French</option>
@@ -302,7 +556,11 @@ const SettingsPage = () => {
                     
                     <div className="form-group">
                       <label htmlFor="timezone">Timezone</label>
-                      <select id="timezone">
+                      <select 
+                        id="timezone"
+                        value={preferences.timezone}
+                        onChange={(e) => setPreferences({...preferences, timezone: e.target.value})}
+                      >
                         <option value="utc">UTC</option>
                         <option value="est">Eastern Time (EST)</option>
                         <option value="cst">Central Time (CST)</option>
@@ -310,16 +568,14 @@ const SettingsPage = () => {
                       </select>
                     </div>
                     
-                    <div className="form-group checkbox">
-                      <input id="dark-mode" type="checkbox" checked />
-                      <label htmlFor="dark-mode">Dark Mode</label>
-                      <p className="help-text">Use dark mode for the Plugin Genius interface.</p>
-                    </div>
-                    
                     <div className="preferences-actions">
-                      <button className="save-button">
+                      <button 
+                        className={`save-button ${saveSuccess ? 'success' : ''}`}
+                        onClick={handleSavePreferences}
+                        disabled={loading}
+                      >
                         <FiSave />
-                        <span>Save Preferences</span>
+                        <span>{loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Preferences'}</span>
                       </button>
                     </div>
                   </div>

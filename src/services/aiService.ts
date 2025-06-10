@@ -22,8 +22,15 @@ export const AI_MODELS: AIModel[] = [
     systemPrompt: 'You are a WordPress plugin development expert. Help the user create high-quality, secure, and efficient WordPress plugins. Provide code examples, best practices, and explain WordPress-specific concepts when needed.'
   },
   {
-    id: 'gpt-40',
-    name: 'GPT-40',
+    id: 'gpt-4o',
+    name: 'GPT-4o',
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+    requiresApiKey: true,
+    systemPrompt: 'You are a WordPress plugin development expert. Help the user create high-quality, secure, and efficient WordPress plugins. Provide code examples, best practices, and explain WordPress-specific concepts when needed.'
+  },
+  {
+    id: 'gpt-4-1',
+    name: 'GPT-4.1',
     apiEndpoint: 'https://models.github.ai/inference',
     requiresApiKey: true,
     systemPrompt: 'You are a WordPress plugin development expert. Help the user create high-quality, secure, and efficient WordPress plugins. Provide code examples, best practices, and explain WordPress-specific concepts when needed.'
@@ -105,9 +112,11 @@ export const saveApiKey = async (modelId: string, apiKey: string): Promise<boole
   }
 };
 
-// Send message to OpenAI (GPT-4)
-const sendToOpenAI = async (messages: Message[], apiKey: string): Promise<string> => {
+// Send message to OpenAI (GPT-4/GPT-4o)
+const sendToOpenAI = async (messages: Message[], apiKey: string, modelName: string = 'gpt-4'): Promise<string> => {
   try {
+    console.log(`Sending request to OpenAI with model: ${modelName}`);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -115,19 +124,20 @@ const sendToOpenAI = async (messages: Message[], apiKey: string): Promise<string
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: modelName,
         messages,
         temperature: 0.7,
         max_tokens: 2000
       })
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Error communicating with OpenAI');
+      const errorData = await response.json();
+      console.error('OpenAI API error response:', errorData);
+      throw new Error(errorData.error?.message || `Error communicating with OpenAI: ${response.status} ${response.statusText}`);
     }
     
+    const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
     console.error('OpenAI API error:', error);
@@ -135,29 +145,32 @@ const sendToOpenAI = async (messages: Message[], apiKey: string): Promise<string
   }
 };
 
-// Send message to GitHub AI (GPT-40)
+// Send message to GitHub AI (GPT-4.1)
 const sendToGitHubAI = async (messages: Message[], apiKey: string): Promise<string> => {
   try {
-    const response = await fetch('https://models.github.ai/inference', {
+    console.log('Sending request to GitHub AI with model: gpt-4.1');
+    
+    const response = await fetch('https://models.github.ai/inference/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-40',
+        model: 'openai/gpt-4.1',
         messages,
         temperature: 0.7,
         max_tokens: 2000
       })
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Error communicating with GitHub AI');
+      const errorData = await response.json();
+      console.error('GitHub AI API error response:', errorData);
+      throw new Error(errorData.error?.message || `Error communicating with GitHub AI: ${response.status} ${response.statusText}`);
     }
     
+    const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
     console.error('GitHub AI API error:', error);
@@ -306,10 +319,14 @@ export const sendMessage = async (modelId: string, messages: Message[]): Promise
     throw new Error('API key not found. Please add your API key in settings.');
   }
   
+  console.log(`Sending message to model: ${modelId}`);
+  
   switch (modelId) {
     case 'gpt-4':
-      return sendToOpenAI(messages, apiKey);
-    case 'gpt-40':
+      return sendToOpenAI(messages, apiKey, 'gpt-4');
+    case 'gpt-4o':
+      return sendToOpenAI(messages, apiKey, 'gpt-4o');
+    case 'gpt-4-1':
       return sendToGitHubAI(messages, apiKey);
     case 'claude':
       return sendToAnthropic(messages, apiKey);

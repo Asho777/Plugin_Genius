@@ -1,15 +1,28 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiMenu, FiX, FiLogOut, FiUser, FiSettings } from 'react-icons/fi'
 import Logo from '../common/Logo'
 import { supabase } from '../../lib/supabase'
+import { getUserProfile } from '../../services/settingsService'
 import '../../styles/navbar.css'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const profile = await getUserProfile()
+      if (profile && profile.avatar_url) {
+        setAvatarUrl(profile.avatar_url)
+      }
+    }
+    
+    fetchUserProfile()
+  }, [])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -53,7 +66,11 @@ const Navbar = () => {
             whileTap={{ scale: 0.95 }}
           >
             <div className="user-avatar">
-              <FiUser />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="User avatar" className="avatar-image" />
+              ) : (
+                <FiUser />
+              )}
             </div>
           </motion.button>
 

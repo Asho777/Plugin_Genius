@@ -28,7 +28,7 @@ const MyPluginsPage = () => {
       const filtered = plugins.filter(plugin => 
         plugin.name.toLowerCase().includes(term) || 
         plugin.description.toLowerCase().includes(term) ||
-        plugin.tags.some(tag => tag.toLowerCase().includes(term))
+        (plugin.tags && plugin.tags.some(tag => tag.toLowerCase().includes(term)))
       )
       setFilteredPlugins(filtered)
     } else {
@@ -139,7 +139,7 @@ const MyPluginsPage = () => {
                   </p>
                 </div>
                 
-                <div className="my-plugins-grid">
+                <div className="plugins-grid">
                   {filteredPlugins.map((plugin, index) => (
                     <MyPluginCard 
                       key={plugin.id}

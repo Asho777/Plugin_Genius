@@ -54,7 +54,7 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Get started with pre-built templates or create your own custom plugin from scratch
+              Get started with pre-built Wordpress Plugins or create your own custom plugin from scratch
             </motion.p>
             
             <div className="main-options">
@@ -71,13 +71,13 @@ const HomePage = () => {
                 <div className="option-icon">
                   <FiPackage />
                 </div>
-                <h3 className="option-title">Pre-built Templates</h3>
+                <h3 className="option-title">Wordpress Plugins</h3>
                 <p className="option-description">
-                  Choose from our collection of professionally designed plugin templates. Customize to fit your needs and deploy in minutes.
+                  Choose from the collection of professionally designed plugins. Designed to fit your needs and deploy in minutes.
                 </p>
                 {/* Updated to match hero-button styling */}
                 <Link to="/templates" className="hero-button primary">
-                  <span>Browse Templates</span>
+                  <span>Wordpress Plugins</span>
                   <FiArrowRight />
                 </Link>
               </motion.div>
@@ -97,7 +97,7 @@ const HomePage = () => {
                 </div>
                 <h3 className="option-title">Custom Plugin</h3>
                 <p className="option-description">
-                  Build a completely custom WordPress plugin from scratch. Our intuitive builder makes it easy, even without coding experience.
+                  Build a completely custom WordPress Plugin from scratch. Our intuitive builder makes it easy, even without coding experience.
                 </p>
                 {/* Updated to match hero-button styling */}
                 <Link to="/plugins/create" className="hero-button primary">
@@ -126,7 +126,7 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Get started quickly with our most popular pre-built templates
+              Get started quickly with our selection of the most popular Wordpress Plugins
             </motion.p>
             
             <div className="templates-grid">
@@ -149,7 +149,7 @@ const HomePage = () => {
               transition={{ duration: 0.5, delay: 0.5 }}
             >
               <Link to="/templates" className="view-all-link">
-                View All Templates <FiGrid />
+                View All Wordpress Plugins <FiGrid />
               </Link>
             </motion.div>
           </div>

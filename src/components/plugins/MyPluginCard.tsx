@@ -21,7 +21,7 @@ const MyPluginCard: React.FC<MyPluginCardProps> = ({ plugin, onRemove, delay = 0
   
   return (
     <motion.div 
-      className="my-plugin-card"
+      className="plugin-card"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ 
@@ -52,21 +52,27 @@ const MyPluginCard: React.FC<MyPluginCardProps> = ({ plugin, onRemove, delay = 0
         <div className="plugin-card-meta">
           <div className="plugin-card-rating">
             <FiStar className="rating-icon" />
-            <span>{plugin.rating.toFixed(1)}</span>
+            <span>{plugin.rating ? plugin.rating.toFixed(1) : 'N/A'}</span>
           </div>
           
           <div className="plugin-card-downloads">
             <FiDownload className="downloads-icon" />
-            <span>{formatDownloads(plugin.downloads)}</span>
+            <span>{plugin.downloads ? formatDownloads(plugin.downloads) : '0'}</span>
           </div>
         </div>
         
         <div className="plugin-card-tags">
-          {plugin.tags.slice(0, 3).map((tag, index) => (
-            <span key={index} className="plugin-tag">{tag}</span>
-          ))}
-          {plugin.tags.length > 3 && (
-            <span className="plugin-tag-more">+{plugin.tags.length - 3}</span>
+          {plugin.tags && plugin.tags.length > 0 ? (
+            <>
+              {plugin.tags.slice(0, 3).map((tag, index) => (
+                <span key={index} className="plugin-tag">{tag}</span>
+              ))}
+              {plugin.tags.length > 3 && (
+                <span className="plugin-tag-more">+{plugin.tags.length - 3}</span>
+              )}
+            </>
+          ) : (
+            <span className="plugin-tag">No tags</span>
           )}
         </div>
       </div>

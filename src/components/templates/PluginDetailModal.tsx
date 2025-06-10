@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiX, FiStar, FiDownload, FiCalendar, FiExternalLink, FiPlus } from 'react-icons/fi'
+import { FiX, FiStar, FiDownload, FiCalendar, FiExternalLink, FiBookmark, FiCheck } from 'react-icons/fi'
 import { Plugin } from '../../pages/TemplatesPage'
-import { savePlugin } from '../../services/pluginService'
-import { useNavigate } from 'react-router-dom'
+import { savePlugin, getSavedPlugins } from '../../services/pluginService'
 
 interface PluginDetailModalProps {
   plugin: Plugin
@@ -11,34 +10,13 @@ interface PluginDetailModalProps {
 }
 
 const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }) => {
-  const navigate = useNavigate()
-
-  // Close modal when pressing Escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-    
-    window.addEventListener('keydown', handleEscape)
-    
-    // Prevent scrolling on body when modal is open
-    document.body.style.overflow = 'hidden'
-    
-    return () => {
-      window.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'auto'
-    }
-  }, [onClose])
+  const savedPlugins = getSavedPlugins()
+  const isAlreadySaved = savedPlugins.some(p => p.id === plugin.id)
   
-  const formatDownloads = (count: number) => {
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)} million`
-    } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`
-    }
-    return count.toString()
+  const handleSavePlugin = () => {
+    savePlugin(plugin)
+    // Force re-render to update the button state
+    window.location.reload()
   }
   
   const formatDate = (dateString: string) => {
@@ -50,45 +28,49 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
     })
   }
   
+  const formatDownloads = (count: number) => {
+    if (count >= 1000000) {
+      return `${(count / 1000000).toFixed(1)} million`
+    } else if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`
+    }
+    return count.toString()
+  }
+  
   const renderStars = (rating: number) => {
     const stars = []
     const fullStars = Math.floor(rating)
     const hasHalfStar = rating % 1 >= 0.5
     
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
+    for (let i = 1; i <= 5; i++) {
+      if (i <= fullStars) {
         stars.push(<FiStar key={i} className="star filled" />)
-      } else if (i === fullStars && hasHalfStar) {
+      } else if (i === fullStars + 1 && hasHalfStar) {
         stars.push(<FiStar key={i} className="star half" />)
       } else {
-        stars.push(<FiStar key={i} className="star empty" />)
+        stars.push(<FiStar key={i} className="star" />)
       }
     }
     
     return stars
   }
-
-  const handleAddToProject = () => {
-    // Save plugin to local storage
-    savePlugin(plugin)
-    
-    // Close the modal
-    onClose()
-    
-    // Navigate to My Plugins page
-    navigate('/plugins')
-  }
   
   return (
     <AnimatePresence>
-      <div className="modal-overlay" onClick={onClose}>
+      <motion.div 
+        className="modal-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
         <motion.div 
           className="plugin-detail-modal"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.3 }}
-          onClick={(e) => e.stopPropagation()}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ type: 'spring', damping: 20 }}
+          onClick={e => e.stopPropagation()}
         >
           <button className="modal-close-button" onClick={onClose}>
             <FiX />
@@ -107,7 +89,7 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
                 <div className="stars-container">
                   {renderStars(plugin.rating)}
                 </div>
-                <span className="rating-value">{plugin.rating.toFixed(1)}/5</span>
+                <span className="rating-value">{plugin.rating.toFixed(1)} out of 5</span>
               </div>
               
               <div className="plugin-detail-meta">
@@ -123,14 +105,6 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
               </div>
               
               <div className="plugin-detail-actions">
-                <button 
-                  className="action-button primary"
-                  onClick={handleAddToProject}
-                >
-                  <FiPlus />
-                  <span>Add to My Project</span>
-                </button>
-                
                 <a 
                   href={plugin.detailUrl} 
                   target="_blank" 
@@ -140,6 +114,18 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
                   <FiExternalLink />
                   <span>View on WordPress.org</span>
                 </a>
+                
+                {isAlreadySaved ? (
+                  <button className="action-button primary" disabled>
+                    <FiCheck />
+                    <span>Added to My Plugins</span>
+                  </button>
+                ) : (
+                  <button className="action-button primary" onClick={handleSavePlugin}>
+                    <FiBookmark />
+                    <span>Add to My Plugins</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -160,7 +146,7 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
             </div>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </AnimatePresence>
   )
 }
