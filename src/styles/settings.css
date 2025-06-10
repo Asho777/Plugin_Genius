@@ -266,3 +266,19 @@
   justify-content: flex-end;
   margin-top: var(--spacing-lg);
 }
+
+/* Timezone Select Styling */
+.timezone-select {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Section Title */
+.section-title {
+  font-size: 1.2rem;
+  color: var(--color-white);
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}

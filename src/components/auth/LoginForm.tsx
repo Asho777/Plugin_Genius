@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
-import { FiMail, FiLock, FiAlertCircle } from 'react-icons/fi'
+import { FiAlertCircle } from 'react-icons/fi'
 import { supabase } from '../../lib/supabase'
 
 const LoginForm = () => {
@@ -55,14 +55,13 @@ const LoginForm = () => {
       <form onSubmit={formik.handleSubmit} className="auth-form">
         <div className="form-group">
           <label htmlFor="email" className="form-label">Email</label>
-          <div className="input-wrapper">
-            <FiMail className="input-icon" />
+          <div className={`input-wrapper ${formik.touched.email && formik.errors.email ? 'error' : ''}`}>
             <input
               id="email"
               name="email"
               type="email"
               placeholder="Enter your email"
-              className={`form-input ${formik.touched.email && formik.errors.email ? 'error' : ''}`}
+              className="form-input"
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               value={formik.values.email}
@@ -75,14 +74,13 @@ const LoginForm = () => {
         
         <div className="form-group">
           <label htmlFor="password" className="form-label">Password</label>
-          <div className="input-wrapper">
-            <FiLock className="input-icon" />
+          <div className={`input-wrapper ${formik.touched.password && formik.errors.password ? 'error' : ''}`}>
             <input
               id="password"
               name="password"
               type="password"
               placeholder="Enter your password"
-              className={`form-input ${formik.touched.password && formik.errors.password ? 'error' : ''}`}
+              className="form-input"
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               value={formik.values.password}

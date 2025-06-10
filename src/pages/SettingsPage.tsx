@@ -11,6 +11,7 @@ import {
   getUserPreferences, updateUserPreferences,
   UserProfile, UserNotifications, UserPreferences, UserSecurity
 } from '../services/settingsService'
+import { timezones, getUserTimezone } from '../utils/timezones'
 import '../styles/settings.css'
 
 const SettingsPage = () => {
@@ -49,7 +50,7 @@ const SettingsPage = () => {
   
   const [preferences, setPreferences] = useState<UserPreferences>({
     language: 'en',
-    timezone: 'utc',
+    timezone: getUserTimezone(),
     dark_mode: true
   })
   
@@ -560,11 +561,13 @@ const SettingsPage = () => {
                         id="timezone"
                         value={preferences.timezone}
                         onChange={(e) => setPreferences({...preferences, timezone: e.target.value})}
+                        className="timezone-select"
                       >
-                        <option value="utc">UTC</option>
-                        <option value="est">Eastern Time (EST)</option>
-                        <option value="cst">Central Time (CST)</option>
-                        <option value="pst">Pacific Time (PST)</option>
+                        {timezones.map(tz => (
+                          <option key={tz.value} value={tz.value}>
+                            {tz.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     
