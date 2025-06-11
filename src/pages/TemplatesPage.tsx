@@ -23,10 +23,10 @@ export interface Plugin {
 
 const TemplatesPage = () => {
   const [plugins, setPlugins] = useState<Plugin[]>([])
-  const [filteredPlugins, setFilteredPlugins] = useState<Plugin[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('')
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
@@ -34,6 +34,7 @@ const TemplatesPage = () => {
     minRating: 0,
     sortBy: 'popular'
   })
+  const [useFilters, setUseFilters] = useState(false)
   
   const categories = [
     { id: 'all', name: 'All Categories' },
@@ -46,26 +47,50 @@ const TemplatesPage = () => {
     { id: 'performance', name: 'Performance' }
   ]
 
-  useEffect(() => {
-    const loadPlugins = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchWordPressPlugins()
-        setPlugins(data)
-        setFilteredPlugins(data)
-      } catch (err) {
-        setError('Failed to load plugins. Please try again later.')
-        console.error('Error loading plugins:', err)
-      } finally {
-        setLoading(false)
+  // Function to search for plugins
+  const searchPlugins = async (term: string, applyFilters = false) => {
+    try {
+      setLoading(true)
+      setError(null)
+      setCurrentSearchTerm(term) // Store the current search term
+      setUseFilters(applyFilters) // Store whether to use filters
+      
+      // Clear existing plugins first
+      setPlugins([])
+      
+      console.log('Searching for plugins with term:', term)
+      console.log('Apply filters:', applyFilters)
+      
+      // Fetch plugins from WordPress API
+      const results = await fetchWordPressPlugins(term)
+      console.log('Search results:', results)
+      
+      // Check if results are relevant to the search term
+      if (term && results.length === 0) {
+        setError(`No plugins found for "${term}". Try a different search term.`)
+      } else {
+        setPlugins(results)
       }
+    } catch (err) {
+      setError('Failed to load plugins. Please try again later.')
+      console.error('Error loading plugins:', err)
+    } finally {
+      setLoading(false)
     }
-    
-    loadPlugins()
+  }
+  
+  // Initial load - fetch popular plugins
+  useEffect(() => {
+    searchPlugins('')
   }, [])
   
-  useEffect(() => {
-    // Apply filters and search
+  // Apply filters to the plugins
+  const filteredPlugins = React.useMemo(() => {
+    // If we're not using filters, return all plugins
+    if (!useFilters) {
+      return plugins
+    }
+    
     let results = [...plugins]
     
     // Apply category filter
@@ -78,16 +103,6 @@ const TemplatesPage = () => {
     // Apply rating filter
     if (filters.minRating > 0) {
       results = results.filter(plugin => plugin.rating >= filters.minRating)
-    }
-    
-    // Apply search term
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase()
-      results = results.filter(plugin => 
-        plugin.name.toLowerCase().includes(term) || 
-        plugin.description.toLowerCase().includes(term) ||
-        plugin.tags.some(tag => tag.toLowerCase().includes(term))
-      )
     }
     
     // Apply sorting
@@ -105,11 +120,23 @@ const TemplatesPage = () => {
         break
     }
     
-    setFilteredPlugins(results)
-  }, [plugins, filters, searchTerm])
+    return results
+  }, [plugins, filters, useFilters])
   
+  // Handle search input change
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
+  }
+  
+  // Handle search form submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    searchPlugins(searchTerm, showFilters) // Only apply filters if they're visible
+  }
+  
+  // Handle quick search (without filters)
+  const handleQuickSearch = () => {
+    searchPlugins(searchTerm, false) // Don't apply filters
   }
   
   const handleFilterChange = (key: string, value: string | number) => {
@@ -129,7 +156,6 @@ const TemplatesPage = () => {
       minRating: 0,
       sortBy: 'popular'
     })
-    setSearchTerm('')
   }
   
   const openPluginDetail = (plugin: Plugin) => {
@@ -148,10 +174,11 @@ const TemplatesPage = () => {
         <section className="templates-header">
           <div className="container">
             <motion.h1 
-              className="page-title"
+              className="page-title yellow-title"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              style={{ color: '#ffc107' }} // Inline style to force yellow color
             >
               Browse WordPress Plugins
             </motion.h1>
@@ -165,11 +192,12 @@ const TemplatesPage = () => {
               Discover and integrate popular WordPress plugins into your custom solution
             </motion.p>
             
-            <motion.div 
+            <motion.form 
               className="search-container"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
+              onSubmit={handleSearchSubmit}
             >
               <div className="search-input-wrapper">
                 <FiSearch className="search-icon" />
@@ -181,13 +209,21 @@ const TemplatesPage = () => {
                   onChange={handleSearch}
                 />
                 {searchTerm && (
-                  <button className="search-clear" onClick={() => setSearchTerm('')}>
+                  <button 
+                    type="button" 
+                    className="search-clear" 
+                    onClick={() => {
+                      setSearchTerm('')
+                      searchPlugins('')
+                    }}
+                  >
                     <FiX />
                   </button>
                 )}
               </div>
               
               <button 
+                type="button"
                 className={`filter-toggle ${showFilters ? 'active' : ''}`} 
                 onClick={toggleFilters}
               >
@@ -195,7 +231,19 @@ const TemplatesPage = () => {
                 <span>Filters</span>
                 {showFilters ? <FiChevronUp /> : <FiChevronDown />}
               </button>
-            </motion.div>
+              
+              <button 
+                type="button" 
+                className="search-button quick-search" 
+                onClick={handleQuickSearch}
+              >
+                Quick Search
+              </button>
+              
+              <button type="submit" className="search-button">
+                {showFilters ? "Search with Filters" : "Search"}
+              </button>
+            </motion.form>
             
             <motion.div 
               className="filters-container"
@@ -278,7 +326,7 @@ const TemplatesPage = () => {
               <div className="error-container">
                 <FiInfo className="error-icon" />
                 <p>{error}</p>
-                <button className="retry-button" onClick={() => window.location.reload()}>
+                <button className="retry-button" onClick={() => searchPlugins(searchTerm, useFilters)}>
                   Try Again
                 </button>
               </div>
@@ -295,6 +343,9 @@ const TemplatesPage = () => {
                 <div className="results-header">
                   <p className="results-count">
                     Showing <span>{filteredPlugins.length}</span> plugins
+                    {currentSearchTerm && <span className="search-term"> for "{currentSearchTerm}"</span>}
+                    {!currentSearchTerm && <span className="search-term"> (popular plugins)</span>}
+                    {useFilters && <span className="filter-indicator"> with filters applied</span>}
                   </p>
                 </div>
                 
