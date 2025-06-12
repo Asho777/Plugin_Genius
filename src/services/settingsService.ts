@@ -35,87 +35,115 @@ export interface UserPreferences {
 
 // Get user profile
 export const getUserProfile = async (): Promise<UserProfile | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    return null;
-  }
-  
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', user.user.id)
-    .single();
+  try {
+    const { data: user } = await supabase.auth.getUser();
     
-  if (error) {
-    console.error('Error fetching user profile:', error);
+    if (!user.user) {
+      console.log('No authenticated user found in getUserProfile');
+      return null;
+    }
+    
+    console.log('Getting profile for user:', user.user.id);
+    
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', user.user.id)
+      .single();
+      
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+    
+    console.log('Successfully retrieved user profile:', data);
+    return data;
+  } catch (error) {
+    console.error('Exception in getUserProfile:', error);
     return null;
   }
-  
-  return data;
 };
 
 // Update user profile
 export const updateUserProfile = async (profile: UserProfile): Promise<UserProfile | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    
+    if (!user.user) {
+      console.log('No authenticated user found in updateUserProfile');
+      return null;
+    }
+    
+    console.log('Updating profile for user:', user.user.id);
+    
+    // Check if profile exists
+    const { data: existingProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.user.id)
+      .single();
+    
+    let result;
+    
+    if (existingProfile) {
+      console.log('Updating existing profile');
+      // Update existing profile
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({
+          full_name: profile.full_name,
+          email: profile.email,
+          company: profile.company,
+          avatar_url: profile.avatar_url, // Ensure avatar_url is included in the update
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.user.id)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error updating user profile:', error);
+        return null;
+      }
+      
+      console.log('Profile updated successfully:', data);
+      result = data;
+    } else {
+      console.log('Creating new profile');
+      // Insert new profile
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          user_id: user.user.id,
+          full_name: profile.full_name,
+          email: profile.email,
+          company: profile.company,
+          avatar_url: profile.avatar_url, // Ensure avatar_url is included in the insert
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error creating user profile:', error);
+        return null;
+      }
+      
+      console.log('Profile created successfully:', data);
+      result = data;
+    }
+    
+    // Notify about profile update
+    console.log('Dispatching profile update events');
+    window.localStorage.setItem('profileUpdated', new Date().toISOString());
+    window.dispatchEvent(new Event('profileUpdated'));
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in updateUserProfile:', error);
     return null;
   }
-  
-  // Check if profile exists
-  const { data: existingProfile } = await supabase
-    .from('user_profiles')
-    .select('id')
-    .eq('user_id', user.user.id)
-    .single();
-  
-  let result;
-  
-  if (existingProfile) {
-    // Update existing profile
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update({
-        full_name: profile.full_name,
-        email: profile.email,
-        company: profile.company,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.user.id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating user profile:', error);
-      return null;
-    }
-    
-    result = data;
-  } else {
-    // Insert new profile
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .insert({
-        user_id: user.user.id,
-        full_name: profile.full_name,
-        email: profile.email,
-        company: profile.company,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating user profile:', error);
-      return null;
-    }
-    
-    result = data;
-  }
-  
-  return result;
 };
 
 // Upload avatar image
@@ -124,12 +152,17 @@ export const uploadAvatar = async (file: File): Promise<string | null> => {
     const { data: user } = await supabase.auth.getUser();
     
     if (!user.user) {
+      console.log('No authenticated user found in uploadAvatar');
       return null;
     }
+    
+    console.log('Uploading avatar for user:', user.user.id);
     
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.user.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     const filePath = `avatars/${fileName}`;
+    
+    console.log('Uploading file to path:', filePath);
     
     const { error: uploadError } = await supabase.storage
       .from('user-content')
@@ -140,10 +173,14 @@ export const uploadAvatar = async (file: File): Promise<string | null> => {
       return null;
     }
     
+    console.log('File uploaded successfully, getting public URL');
+    
     const { data } = supabase.storage
       .from('user-content')
       .getPublicUrl(filePath);
       
+    console.log('Got public URL:', data.publicUrl);
+    
     // Update user profile with avatar URL
     const { error: updateError } = await supabase
       .from('user_profiles')
@@ -154,12 +191,19 @@ export const uploadAvatar = async (file: File): Promise<string | null> => {
       .eq('user_id', user.user.id);
       
     if (updateError) {
-      console.error('Error updating avatar URL:', updateError);
+      console.error('Error updating avatar URL in profile:', updateError);
+    } else {
+      console.log('Profile updated with new avatar URL');
+      
+      // Notify about profile update
+      console.log('Dispatching profile update events after avatar upload');
+      window.localStorage.setItem('profileUpdated', new Date().toISOString());
+      window.dispatchEvent(new Event('profileUpdated'));
     }
     
     return data.publicUrl;
   } catch (error) {
-    console.error('Error uploading avatar:', error);
+    console.error('Exception in uploadAvatar:', error);
     return null;
   }
 };

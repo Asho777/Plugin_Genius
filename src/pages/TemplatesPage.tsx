@@ -58,12 +58,8 @@ const TemplatesPage = () => {
       // Clear existing plugins first
       setPlugins([])
       
-      console.log('Searching for plugins with term:', term)
-      console.log('Apply filters:', applyFilters)
-      
       // Fetch plugins from WordPress API
       const results = await fetchWordPressPlugins(term)
-      console.log('Search results:', results)
       
       // Check if results are relevant to the search term
       if (term && results.length === 0) {

@@ -242,6 +242,16 @@ const SettingsPage = () => {
     }
   };
   
+  // Apply dark background to select dropdowns
+  useEffect(() => {
+    // Add a class to the document to help with styling select dropdowns
+    document.documentElement.classList.add('dark-dropdowns');
+    
+    return () => {
+      document.documentElement.classList.remove('dark-dropdowns');
+    };
+  }, []);
+  
   return (
     <div className="settings-page">
       <Navbar />

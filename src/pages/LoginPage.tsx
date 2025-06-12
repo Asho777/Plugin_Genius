@@ -1,16 +1,47 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { FiCode } from 'react-icons/fi'
-import LoginForm from '../components/auth/LoginForm'
-import RegisterForm from '../components/auth/RegisterForm'
+import React from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useFormik } from 'formik'
+import * as Yup from 'yup'
+import { motion } from 'framer-motion'
+import { FiAlertCircle } from 'react-icons/fi'
+import { supabase } from '../lib/supabase'
+import Logo from '../components/common/Logo'
 import '../styles/auth.css'
 
 const LoginPage = () => {
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
+  const navigate = useNavigate()
   
-  const switchToRegister = () => {
-    setActiveTab('register')
-  }
+  const formik = useFormik({
+    initialValues: {
+      email: '',
+      password: '',
+    },
+    validationSchema: Yup.object({
+      email: Yup.string()
+        .email('Invalid email address')
+        .required('Email is required'),
+      password: Yup.string()
+        .required('Password is required'),
+    }),
+    onSubmit: async (values, { setSubmitting, setStatus }) => {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: values.email,
+          password: values.password,
+        })
+        
+        if (error) {
+          throw error
+        }
+        
+        navigate('/home')
+      } catch (error: any) {
+        setStatus(error.message || 'An error occurred during sign in')
+      } finally {
+        setSubmitting(false)
+      }
+    },
+  })
 
   return (
     <div className="auth-page">
@@ -18,47 +49,83 @@ const LoginPage = () => {
       
       <header className="auth-header">
         <div className="auth-logo">
-          <FiCode size={24} color="#ffd700" />
-          <h1 className="auth-logo-text">Plugin <span>Genius</span></h1>
+          <Logo />
+          <div className="auth-logo-text">Plugin <span>Genius</span></div>
         </div>
       </header>
       
-      <div className="auth-container">
+      <main className="auth-container">
         <div className="auth-card">
-          <div className="auth-tabs">
-            <button 
-              className={`auth-tab ${activeTab === 'login' ? 'active' : ''}`}
-              onClick={() => setActiveTab('login')}
-            >
-              Sign In
-            </button>
-            <button 
-              className={`auth-tab ${activeTab === 'register' ? 'active' : ''}`}
-              onClick={() => setActiveTab('register')}
-            >
-              Create Account
-            </button>
-          </div>
-          
-          <div className="auth-form-container">
-            {activeTab === 'login' ? (
-              <>
-                <LoginForm />
-                <div className="auth-footer">
-                  Don't have an account? <a href="#" onClick={(e) => { e.preventDefault(); switchToRegister(); }}>Create one now</a>
-                </div>
-              </>
-            ) : (
-              <>
-                <RegisterForm onRegistrationSuccess={() => setActiveTab('login')} />
-                <div className="auth-footer">
-                  Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('login'); }}>Sign in</a>
-                </div>
-              </>
+          <motion.div 
+            className="auth-form-container"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h1 className="auth-title">Sign In</h1>
+            <p className="auth-subtitle">Welcome back! Sign in to your account</p>
+            
+            {formik.status && (
+              <div className="auth-error">
+                <FiAlertCircle />
+                <span>{formik.status}</span>
+              </div>
             )}
-          </div>
+            
+            <form onSubmit={formik.handleSubmit} className="auth-form">
+              <div className="form-group">
+                <label htmlFor="email" className="form-label">Email</label>
+                <div className={`input-wrapper ${formik.touched.email && formik.errors.email ? 'error' : ''}`}>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="form-input"
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.email}
+                  />
+                </div>
+                {formik.touched.email && formik.errors.email ? (
+                  <div className="error-message">{formik.errors.email}</div>
+                ) : null}
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="password" className="form-label">Password</label>
+                <div className={`input-wrapper ${formik.touched.password && formik.errors.password ? 'error' : ''}`}>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    className="form-input"
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.password}
+                  />
+                </div>
+                {formik.touched.password && formik.errors.password ? (
+                  <div className="error-message">{formik.errors.password}</div>
+                ) : null}
+              </div>
+              
+              <button 
+                type="submit" 
+                className="auth-button"
+                disabled={formik.isSubmitting}
+              >
+                {formik.isSubmitting ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+            
+            <div className="auth-footer">
+              <p>Don't have an account? <Link to="/register">Sign up</Link></p>
+            </div>
+          </motion.div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

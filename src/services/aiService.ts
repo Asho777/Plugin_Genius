@@ -52,7 +52,7 @@ export const AI_MODELS: AIModel[] = [
   {
     id: 'llama',
     name: 'Llama 3',
-    apiEndpoint: 'https://api.together.xyz/v1/completions',
+    apiEndpoint: 'https://api.together.xyz/v1/chat/completions',
     requiresApiKey: true,
     systemPrompt: 'You are a WordPress plugin development expert. Help the user create high-quality, secure, and efficient WordPress plugins. Provide code examples, best practices, and explain WordPress-specific concepts when needed.'
   }
@@ -265,25 +265,16 @@ const sendToGemini = async (messages: Message[], apiKey: string): Promise<string
 // Send message to Together AI (Llama 3)
 const sendToLlama = async (messages: Message[], apiKey: string): Promise<string> => {
   try {
-    // Convert messages to Llama format
-    let prompt = '';
+    console.log('Sending request to Together AI with model: Llama 3');
     
-    // Add system prompt
-    const systemPrompt = messages.find(m => m.role === 'system')?.content;
-    if (systemPrompt) {
-      prompt += `<|system|>\n${systemPrompt}\n`;
-    }
+    // Convert messages to the format expected by Together AI
+    const formattedMessages = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
     
-    // Add conversation
-    for (const message of messages.filter(m => m.role !== 'system')) {
-      const role = message.role === 'assistant' ? 'assistant' : 'user';
-      prompt += `<|${role}|>\n${message.content}\n`;
-    }
-    
-    // Add final assistant prompt
-    prompt += '<|assistant|>\n';
-    
-    const response = await fetch('https://api.together.xyz/v1/completions', {
+    // Use the chat completions endpoint for Llama 3
+    const response = await fetch('https://api.together.xyz/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -291,20 +282,22 @@ const sendToLlama = async (messages: Message[], apiKey: string): Promise<string>
       },
       body: JSON.stringify({
         model: 'meta-llama/Llama-3-70b-chat-hf',
-        prompt,
-        max_tokens: 2000,
+        messages: formattedMessages,
         temperature: 0.7,
-        stop: ['<|user|>', '<|system|>']
+        max_tokens: 2000
       })
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Error communicating with Together AI');
+      const errorData = await response.json();
+      console.error('Together AI API error response:', errorData);
+      throw new Error(errorData.error?.message || `Error communicating with Together AI: ${response.status} ${response.statusText}`);
     }
     
-    return data.choices[0].text;
+    const data = await response.json();
+    console.log('Together AI response:', data);
+    
+    return data.choices[0].message.content;
   } catch (error) {
     console.error('Together AI API error:', error);
     throw error;

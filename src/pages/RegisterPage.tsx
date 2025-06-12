@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
 import { motion } from 'framer-motion'
-import { FiMail, FiLock, FiUser, FiAlertCircle } from 'react-icons/fi'
+import { FiAlertCircle } from 'react-icons/fi'
 import { supabase } from '../lib/supabase'
 import Logo from '../components/common/Logo'
 import '../styles/auth.css'
@@ -48,7 +48,7 @@ const RegisterPage = () => {
         }
         
         // Redirect to login page after successful registration
-        navigate('/')
+        navigate('/login')
       } catch (error: any) {
         setStatus(error.message || 'An error occurred during registration')
       } finally {
@@ -89,14 +89,13 @@ const RegisterPage = () => {
             <form onSubmit={formik.handleSubmit} className="auth-form">
               <div className="form-group">
                 <label htmlFor="name" className="form-label">Full Name</label>
-                <div className="input-wrapper">
-                  <FiUser className="input-icon" />
+                <div className={`input-wrapper ${formik.touched.name && formik.errors.name ? 'error' : ''}`}>
                   <input
                     id="name"
                     name="name"
                     type="text"
                     placeholder="Enter your full name"
-                    className={`form-input ${formik.touched.name && formik.errors.name ? 'error' : ''}`}
+                    className="form-input"
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     value={formik.values.name}
@@ -109,14 +108,13 @@ const RegisterPage = () => {
               
               <div className="form-group">
                 <label htmlFor="email" className="form-label">Email</label>
-                <div className="input-wrapper">
-                  <FiMail className="input-icon" />
+                <div className={`input-wrapper ${formik.touched.email && formik.errors.email ? 'error' : ''}`}>
                   <input
                     id="email"
                     name="email"
                     type="email"
                     placeholder="Enter your email"
-                    className={`form-input ${formik.touched.email && formik.errors.email ? 'error' : ''}`}
+                    className="form-input"
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     value={formik.values.email}
@@ -129,14 +127,13 @@ const RegisterPage = () => {
               
               <div className="form-group">
                 <label htmlFor="password" className="form-label">Password</label>
-                <div className="input-wrapper">
-                  <FiLock className="input-icon" />
+                <div className={`input-wrapper ${formik.touched.password && formik.errors.password ? 'error' : ''}`}>
                   <input
                     id="password"
                     name="password"
                     type="password"
                     placeholder="Create a password"
-                    className={`form-input ${formik.touched.password && formik.errors.password ? 'error' : ''}`}
+                    className="form-input"
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     value={formik.values.password}
@@ -149,14 +146,13 @@ const RegisterPage = () => {
               
               <div className="form-group">
                 <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-                <div className="input-wrapper">
-                  <FiLock className="input-icon" />
+                <div className={`input-wrapper ${formik.touched.confirmPassword && formik.errors.confirmPassword ? 'error' : ''}`}>
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
                     type="password"
                     placeholder="Confirm your password"
-                    className={`form-input ${formik.touched.confirmPassword && formik.errors.confirmPassword ? 'error' : ''}`}
+                    className="form-input"
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     value={formik.values.confirmPassword}
@@ -177,7 +173,7 @@ const RegisterPage = () => {
             </form>
             
             <div className="auth-footer">
-              <p>Already have an account? <Link to="/">Sign In</Link></p>
+              <p>Already have an account? <Link to="/login">Sign In</Link></p>
             </div>
           </motion.div>
         </div>

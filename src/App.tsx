@@ -11,6 +11,8 @@ import DocsPage from './pages/DocsPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import CreatePluginPage from './pages/CreatePluginPage'
+import SplashScreen from './components/common/SplashScreen'
+import LoadingScreen from './components/common/LoadingScreen'
 import './App.css'
 
 function App() {
@@ -35,16 +37,13 @@ function App() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-spinner"></div>
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   return (
     <Routes>
-      <Route path="/" element={session ? <Navigate to="/home" /> : <LoginPage />} />
+      <Route path="/" element={session ? <Navigate to="/home" /> : <SplashScreen />} />
+      <Route path="/login" element={session ? <Navigate to="/home" /> : <LoginPage />} />
       <Route path="/register" element={session ? <Navigate to="/home" /> : <RegisterPage />} />
       <Route path="/home" element={session ? <HomePage /> : <Navigate to="/" />} />
       <Route path="/templates" element={session ? <TemplatesPage /> : <Navigate to="/" />} />

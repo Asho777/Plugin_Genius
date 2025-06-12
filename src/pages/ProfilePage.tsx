@@ -69,6 +69,7 @@ const ProfilePage = () => {
     
     try {
       const avatarUrl = await uploadAvatar(file)
+      console.log('Uploaded avatar URL:', avatarUrl)
       
       if (avatarUrl && profile) {
         const updatedProfile = await updateUserProfile({
@@ -77,14 +78,22 @@ const ProfilePage = () => {
         })
         
         if (updatedProfile) {
+          console.log('Profile updated with new avatar:', updatedProfile.avatar_url)
           setProfile(updatedProfile)
           setUploadSuccess(true)
           setTimeout(() => setUploadSuccess(false), 3000)
           
-          // Refresh the page to update the avatar in the navbar
-          setTimeout(() => {
-            window.location.reload()
-          }, 1000)
+          // Notify other components (like Navbar) about the profile update
+          localStorage.setItem('profileUpdated', new Date().toISOString())
+          
+          // Dispatch both a storage event and a custom event
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'profileUpdated',
+            newValue: new Date().toISOString()
+          }))
+          
+          // Also dispatch a custom event as a backup
+          window.dispatchEvent(new Event('profileUpdated'))
         }
       }
     } catch (error) {
@@ -167,7 +176,16 @@ const ProfilePage = () => {
                   onClick={handleAvatarClick}
                 >
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Profile avatar" className="profile-avatar" />
+                    <img 
+                      src={`${profile.avatar_url}?t=${new Date().getTime()}`} 
+                      alt="Profile avatar" 
+                      className="profile-avatar" 
+                      onError={(e) => {
+                        console.error('Profile avatar failed to load:', profile.avatar_url)
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                      }}
+                    />
                   ) : (
                     <div className="avatar-placeholder">
                       <FiUser />

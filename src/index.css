@@ -1,0 +1,11 @@
+/* Add this to your global CSS file */
+:root {
+  /* Ensure dropdown styling is consistent */
+  color-scheme: dark;
+}
+
+/* This ensures dropdown options have dark background */
+select option {
+  background-color: var(--color-dark-gray);
+  color: var(--color-white);
+}
