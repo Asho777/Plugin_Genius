@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiX, FiStar, FiDownload, FiCalendar, FiExternalLink, FiBookmark, FiCheck } from 'react-icons/fi'
 import { Plugin } from '../../pages/TemplatesPage'
 import { savePlugin, getSavedPlugins } from '../../services/pluginService'
+import { useNavigate } from 'react-router-dom'
 
 interface PluginDetailModalProps {
   plugin: Plugin
@@ -10,14 +11,15 @@ interface PluginDetailModalProps {
 }
 
 const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }) => {
-  const savedPlugins = getSavedPlugins()
-  const isAlreadySaved = savedPlugins.some(p => p.id === plugin.id)
+  const navigate = useNavigate()
+  const [isSaved, setIsSaved] = useState(false)
   
-  const handleSavePlugin = () => {
-    savePlugin(plugin)
-    // Force re-render to update the button state
-    window.location.reload()
-  }
+  // Check if plugin is saved on component mount
+  useEffect(() => {
+    const savedPlugins = getSavedPlugins()
+    const pluginIsSaved = savedPlugins.some(p => p.id === plugin.id)
+    setIsSaved(pluginIsSaved)
+  }, [plugin.id])
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -55,6 +57,29 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
     return stars
   }
   
+  const handleModalClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+  }
+  
+  const handleViewOnWordPress = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    window.open(plugin.detailUrl, '_blank')
+  }
+  
+  const handleAddToMyPlugins = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!isSaved) {
+      savePlugin(plugin)
+      setIsSaved(true)
+    }
+    
+    // Navigate to the correct route
+    navigate('/my-plugins')
+  }
+  
   return (
     <AnimatePresence>
       <motion.div 
@@ -70,7 +95,7 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', damping: 20 }}
-          onClick={e => e.stopPropagation()}
+          onClick={handleModalClick}
         >
           <button className="modal-close-button" onClick={onClose}>
             <FiX />
@@ -92,6 +117,36 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
                 <span className="rating-value">{plugin.rating.toFixed(1)} out of 5</span>
               </div>
               
+              {/* Separate action buttons from rating */}
+              <div className="plugin-detail-actions" style={{ marginTop: '20px' }}>
+                <button 
+                  className="action-button secondary"
+                  onClick={handleViewOnWordPress}
+                  type="button"
+                >
+                  <FiExternalLink />
+                  <span>View on WordPress.org</span>
+                </button>
+                
+                <button 
+                  className="action-button secondary"
+                  onClick={handleAddToMyPlugins}
+                  type="button"
+                >
+                  {isSaved ? (
+                    <>
+                      <FiCheck />
+                      <span>Added to My Plugins</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiBookmark />
+                      <span>Add to My Plugins</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              
               <div className="plugin-detail-meta">
                 <div className="meta-item">
                   <FiDownload className="meta-icon" />
@@ -102,30 +157,6 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
                   <FiCalendar className="meta-icon" />
                   <span>Updated {formatDate(plugin.lastUpdated)}</span>
                 </div>
-              </div>
-              
-              <div className="plugin-detail-actions">
-                <a 
-                  href={plugin.detailUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="action-button secondary"
-                >
-                  <FiExternalLink />
-                  <span>View on WordPress.org</span>
-                </a>
-                
-                {isAlreadySaved ? (
-                  <button className="action-button primary" disabled>
-                    <FiCheck />
-                    <span>Added to My Plugins</span>
-                  </button>
-                ) : (
-                  <button className="action-button primary" onClick={handleSavePlugin}>
-                    <FiBookmark />
-                    <span>Add to My Plugins</span>
-                  </button>
-                )}
               </div>
             </div>
           </div>

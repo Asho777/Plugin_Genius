@@ -153,7 +153,7 @@ const Navbar = () => {
             Home
           </Link>
           <Link to="/templates" className={`navbar-link ${isActive('/templates') ? 'active' : ''}`}>
-            Templates
+            Wordpress Plugins
           </Link>
           <Link to="/plugins" className={`navbar-link ${isActive('/plugins') ? 'active' : ''}`}>
             My Plugins
@@ -248,7 +248,7 @@ const Navbar = () => {
               Home
             </Link>
             <Link to="/templates" className={`mobile-link ${isActive('/templates') ? 'active' : ''}`}>
-              Templates
+              Wordpress Plugins
             </Link>
             <Link to="/plugins" className={`mobile-link ${isActive('/plugins') ? 'active' : ''}`}>
               My Plugins

@@ -19,6 +19,17 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, onClick, delay = 0 }) =
     return count.toString()
   }
   
+  // Handle the entire card click
+  const handleCardClick = () => {
+    onClick();
+  }
+  
+  // Handle the button click - prevent event bubbling
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick();
+  }
+  
   return (
     <motion.div 
       className="plugin-card"
@@ -33,7 +44,7 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, onClick, delay = 0 }) =
         y: -5,
         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
       }}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <div className="plugin-card-image">
         <img src={plugin.imageUrl} alt={plugin.name} />
@@ -73,7 +84,11 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, onClick, delay = 0 }) =
       </div>
       
       <div className="plugin-card-footer">
-        <button className="plugin-card-button">
+        <button 
+          className="plugin-card-button" 
+          onClick={handleButtonClick}
+          type="button"
+        >
           <span>View Details</span>
           <FiArrowRight />
         </button>

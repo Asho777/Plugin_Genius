@@ -48,6 +48,7 @@ function App() {
       <Route path="/home" element={session ? <HomePage /> : <Navigate to="/" />} />
       <Route path="/templates" element={session ? <TemplatesPage /> : <Navigate to="/" />} />
       <Route path="/plugins" element={session ? <MyPluginsPage /> : <Navigate to="/" />} />
+      <Route path="/my-plugins" element={session ? <MyPluginsPage /> : <Navigate to="/" />} />
       <Route path="/plugins/create" element={session ? <CreatePluginPage /> : <Navigate to="/" />} />
       <Route path="/docs" element={session ? <DocsPage /> : <Navigate to="/" />} />
       <Route path="/profile" element={session ? <ProfilePage /> : <Navigate to="/" />} />
