@@ -173,6 +173,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-lg);
+  height: 600px; /* Set explicit height for the layout */
 }
 
 .workspace-sidebar {
@@ -182,6 +183,7 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid rgba(255, 215, 0, 0.1);
+  height: 100%; /* Ensure full height */
 }
 
 .workspace-tabs {
@@ -219,6 +221,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  height: calc(100% - 50px); /* Subtract tab height */
 }
 
 /* Chat Panel */
@@ -226,7 +230,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 500px;
+  overflow: hidden;
 }
 
 .chat-messages {
@@ -236,6 +240,30 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
+  min-height: 0; /* Critical for flexbox scrolling */
+  max-height: calc(100% - 120px); /* Subtract input height */
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 215, 0, 0.3) rgba(0, 0, 0, 0.2);
+}
+
+/* Webkit scrollbar styling (Chrome, Safari, newer Edge) */
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 215, 0, 0.5);
 }
 
 .message {
@@ -311,6 +339,7 @@
   border-top: 1px solid rgba(255, 215, 0, 0.1);
   display: flex;
   gap: var(--spacing-md);
+  min-height: 120px; /* Fixed height for input area */
 }
 
 .chat-input {
@@ -356,6 +385,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .code-editor {
@@ -365,6 +395,30 @@
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: var(--radius-md);
   margin: var(--spacing-md);
+  min-height: 0; /* Critical for flexbox scrolling */
+  max-height: calc(100% - 60px); /* Subtract actions height */
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 215, 0, 0.3) rgba(0, 0, 0, 0.2);
+}
+
+/* Webkit scrollbar styling for code editor */
+.code-editor::-webkit-scrollbar {
+  width: 8px;
+}
+
+.code-editor::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.code-editor::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+}
+
+.code-editor::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 215, 0, 0.5);
 }
 
 .code-content {
@@ -381,6 +435,7 @@
   gap: var(--spacing-sm);
   padding: 0 var(--spacing-md) var(--spacing-md);
   justify-content: flex-end;
+  min-height: 50px; /* Fixed height for actions */
 }
 
 .code-action {
@@ -409,12 +464,37 @@
   margin: var(--spacing-md);
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
+  overflow: hidden;
 }
 
 .terminal-output {
   flex: 1;
   overflow-y: auto;
   margin-bottom: var(--spacing-md);
+  min-height: 0; /* Critical for flexbox scrolling */
+  max-height: calc(100% - 40px); /* Subtract input height */
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 215, 0, 0.3) rgba(0, 0, 0, 0.2);
+}
+
+/* Webkit scrollbar styling for terminal output */
+.terminal-output::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+}
+
+.terminal-output::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 215, 0, 0.5);
 }
 
 .terminal-line {
@@ -427,6 +507,7 @@
 .terminal-input-container {
   display: flex;
   align-items: center;
+  min-height: 30px; /* Fixed height for input */
 }
 
 .terminal-prompt {
@@ -455,6 +536,7 @@
   border: 1px solid rgba(255, 215, 0, 0.1);
   display: flex;
   flex-direction: column;
+  height: 100%; /* Ensure full height */
 }
 
 .preview-header {
@@ -501,6 +583,28 @@
   flex: 1;
   padding: var(--spacing-md);
   overflow-y: auto;
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 215, 0, 0.3) rgba(0, 0, 0, 0.2);
+}
+
+/* Webkit scrollbar styling for preview content */
+.preview-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preview-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.preview-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+}
+
+.preview-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 215, 0, 0.5);
 }
 
 /* WordPress Preview */
@@ -623,10 +727,16 @@
 @media (max-width: 1024px) {
   .workspace-layout {
     grid-template-columns: 1fr;
+    height: auto;
   }
   
   .workspace-sidebar {
     margin-bottom: var(--spacing-lg);
+    height: 600px; /* Fixed height on smaller screens */
+  }
+  
+  .preview-panel {
+    height: 600px; /* Fixed height on smaller screens */
   }
 }
 

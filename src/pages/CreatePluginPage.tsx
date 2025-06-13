@@ -5,6 +5,7 @@ import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import { AI_MODELS, Message, sendMessage, getApiKey } from '../services/aiService'
 import { savePlugin } from '../services/pluginService'
+import { formatCode } from '../services/codeService'
 import '../styles/create-plugin.css'
 
 const CreatePluginPage = () => {
@@ -42,7 +43,62 @@ const CreatePluginPage = () => {
   ])
   const [code, setCode] = useState('')
   const [copied, setCopied] = useState(false)
+  const [formatting, setFormatting] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Generate more terminal output for scrolling demo
+  useEffect(() => {
+    const moreOutput = [...terminalOutput];
+    for (let i = 0; i < 20; i++) {
+      moreOutput.push(`$ echo "Line ${i + 1} - This is sample terminal output to demonstrate scrolling"`);
+      moreOutput.push(`Line ${i + 1} - This is sample terminal output to demonstrate scrolling`);
+    }
+    setTerminalOutput(moreOutput);
+  }, []);
+  
+  // Generate more code for scrolling demo
+  useEffect(() => {
+    let demoCode = `<?php
+/**
+ * Plugin Name: ${pluginName || 'My Custom Plugin'}
+ * Description: A custom WordPress plugin created with Plugin Genius
+ * Version: 1.0.0
+ * Author: Plugin Genius
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Register block
+function register_custom_block() {
+    // Register script
+    wp_register_script(
+        'custom-block-editor',
+        plugins_url('block.js', __FILE__),
+        array('wp-blocks', 'wp-element', 'wp-editor')
+    );
+
+    // Register block
+    register_block_type('custom/block', array(
+        'editor_script' => 'custom-block-editor',
+    ));
+}
+add_action('init', 'register_custom_block');`;
+
+    // Add more code to demonstrate scrolling
+    for (let i = 0; i < 20; i++) {
+      demoCode += `\n\n// Function ${i + 1}
+function custom_function_${i + 1}() {
+    // This is a sample function to demonstrate scrolling
+    $value = "Sample value ${i + 1}";
+    return $value;
+}`;
+    }
+    
+    setCode(demoCode);
+  }, [pluginName]);
   
   // Check if API key exists
   useEffect(() => {
@@ -77,37 +133,12 @@ const CreatePluginPage = () => {
     checkApiKey();
   }, [activeAI]);
   
-  // Update code when plugin name changes
+  // Scroll to bottom of messages when new message is added
   useEffect(() => {
-    setCode(`<?php
-/**
- * Plugin Name: ${pluginName || 'My Custom Plugin'}
- * Description: A custom WordPress plugin created with Plugin Genius
- * Version: 1.0.0
- * Author: Plugin Genius
- */
-
-// Exit if accessed directly
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-// Register block
-function register_custom_block() {
-    // Register script
-    wp_register_script(
-        'custom-block-editor',
-        plugins_url('block.js', __FILE__),
-        array('wp-blocks', 'wp-element', 'wp-editor')
-    );
-
-    // Register block
-    register_block_type('custom/block', array(
-        'editor_script' => 'custom-block-editor',
-    ));
-}
-add_action('init', 'register_custom_block');`);
-  }, [pluginName]);
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading]);
   
   // Handle sending message to AI
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -182,6 +213,23 @@ add_action('init', 'register_custom_block');`);
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+  
+  // Handle format code
+  const handleFormatCode = () => {
+    if (!code.trim() || formatting) return;
+    
+    setFormatting(true);
+    
+    try {
+      // Format the code
+      const formattedCode = formatCode(code);
+      setCode(formattedCode);
+    } catch (error) {
+      console.error('Error formatting code:', error);
+    } finally {
+      setFormatting(false);
+    }
   };
   
   // Handle save plugin
@@ -375,7 +423,13 @@ add_action('init', 'register_custom_block');`);
                         >
                           {copied ? <><FiCheck /> Copied</> : <><FiCopy /> Copy</>}
                         </button>
-                        <button className="code-action">Format</button>
+                        <button 
+                          className="code-action"
+                          onClick={handleFormatCode}
+                          disabled={formatting}
+                        >
+                          {formatting ? 'Formatting...' : 'Format'}
+                        </button>
                         <button className="code-action" onClick={handleSavePlugin}>Save</button>
                       </div>
                     </div>
@@ -443,6 +497,18 @@ add_action('init', 'register_custom_block');`);
                           <button className="preview-wp-plugin-action">Delete</button>
                         </div>
                       </div>
+                      {/* Add more plugin cards to demonstrate scrolling */}
+                      {Array.from({ length: 10 }).map((_, index) => (
+                        <div className="preview-wp-plugin-card" key={index}>
+                          <div className="preview-wp-plugin-name">Sample Plugin {index + 1}</div>
+                          <div className="preview-wp-plugin-description">This is a sample plugin to demonstrate scrolling in the preview panel</div>
+                          <div className="preview-wp-plugin-actions">
+                            <button className="preview-wp-plugin-action">Activate</button>
+                            <button className="preview-wp-plugin-action">Edit</button>
+                            <button className="preview-wp-plugin-action">Delete</button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
