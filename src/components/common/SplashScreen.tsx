@@ -69,7 +69,7 @@ const SplashScreen = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
         >
-          WordPress<br /><span>Plugin Genius</span>
+          WordPress Plugin <span>Genius</span>
         </motion.h1>
         
         <motion.button 
@@ -90,7 +90,7 @@ const SplashScreen = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 1 }}
         >
-          Click the Welcome! button to access our WordPress Plugin Genius Development Platform. Transform your plugin concepts into fully functional solutions with our comprehensive development tools.
+          Press the Welcome button, you are about to enter a Web App that allows you to code build your dreams into hard working WordPress Plugins, have fun and enjoy the experience!
         </motion.p>
       </motion.div>
     </div>
