@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck } from 'react-icons/fi'
+import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import { AI_MODELS, Message, sendMessage, getApiKey } from '../services/aiService'
 import { savePlugin } from '../services/pluginService'
 import { formatCode } from '../services/codeService'
+import { executePlugin, PluginExecutionResult } from '../services/pluginExecutionService'
+import { buildPlugin, PluginBuildResult } from '../services/pluginBuildService'
 import '../styles/create-plugin.css'
+import '../styles/plugin-preview.css'
 
 const CreatePluginPage = () => {
   const [activeAI, setActiveAI] = useState('gpt-4')
@@ -44,6 +47,11 @@ const CreatePluginPage = () => {
   const [code, setCode] = useState('')
   const [copied, setCopied] = useState(false)
   const [formatting, setFormatting] = useState(false)
+  const [previewMode, setPreviewMode] = useState('desktop')
+  const [pluginExecution, setPluginExecution] = useState<PluginExecutionResult | null>(null)
+  const [isExecuting, setIsExecuting] = useState(false)
+  const [isBuilding, setIsBuilding] = useState(false)
+  const [buildResult, setBuildResult] = useState<PluginBuildResult | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
   // Generate more terminal output for scrolling demo
@@ -176,10 +184,18 @@ function custom_function_${i + 1}() {
                          response.match(/<\?php[\s\S]*?\?>/);
         
         if (codeMatch && codeMatch[1]) {
-          setCode(codeMatch[1]);
-          if (activeTab !== 'code') {
-            setActiveTab('code');
-          }
+          const extractedCode = codeMatch[1].replace(/^<\?php/, '<?php');
+          setCode(extractedCode);
+          
+          // Add to terminal output
+          setTerminalOutput(prev => [
+            ...prev,
+            '$ Extracted PHP code from AI response',
+            'Code extracted successfully and placed in editor.'
+          ]);
+          
+          // Switch to code tab
+          setActiveTab('code');
         }
       }
     } catch (error) {
@@ -203,7 +219,50 @@ function custom_function_${i + 1}() {
   // Handle terminal command
   const handleTerminalCommand = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && terminalInput.trim()) {
-      setTerminalOutput([...terminalOutput, `$ ${terminalInput}`, `Command executed: ${terminalInput}`]);
+      // Add command to terminal output
+      const command = terminalInput.trim();
+      setTerminalOutput(prev => [...prev, `$ ${command}`]);
+      
+      // Process command
+      if (command.startsWith('php ')) {
+        // Simulate PHP execution
+        setTerminalOutput(prev => [
+          ...prev, 
+          'Executing PHP code...',
+          'PHP code executed successfully.'
+        ]);
+        
+        // Execute plugin if it's a plugin execution command
+        if (command.includes('plugin.php')) {
+          handleExecutePlugin();
+        }
+      } else if (command.startsWith('wp ')) {
+        // Simulate WordPress CLI
+        setTerminalOutput(prev => [
+          ...prev,
+          'WordPress CLI command executed successfully.'
+        ]);
+      } else if (command.startsWith('npm ') || command.startsWith('yarn ')) {
+        // Simulate package manager
+        setTerminalOutput(prev => [
+          ...prev,
+          'Installing packages...',
+          'Packages installed successfully.'
+        ]);
+      } else if (command.startsWith('zip ')) {
+        // Simulate zip creation
+        handleBuildPlugin();
+      } else if (command === 'clear' || command === 'cls') {
+        // Clear terminal
+        setTerminalOutput(['Terminal cleared.']);
+      } else {
+        // Generic response
+        setTerminalOutput(prev => [
+          ...prev,
+          `Command executed: ${command}`
+        ]);
+      }
+      
       setTerminalInput('');
     }
   };
@@ -225,8 +284,22 @@ function custom_function_${i + 1}() {
       // Format the code
       const formattedCode = formatCode(code);
       setCode(formattedCode);
+      
+      // Add to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ Format code',
+        'Code formatted successfully.'
+      ]);
     } catch (error) {
       console.error('Error formatting code:', error);
+      
+      // Add error to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ Format code',
+        'Error formatting code. Please try again.'
+      ]);
     } finally {
       setFormatting(false);
     }
@@ -239,16 +312,154 @@ function custom_function_${i + 1}() {
       return;
     }
     
-    savePlugin({
-      id: Date.now().toString(),
-      name: pluginName,
-      description: 'A custom WordPress plugin created with Plugin Genius',
-      thumbnail: '/images/plugin-thumbnail.jpg',
-      code: code,
-      createdAt: new Date().toISOString()
-    });
+    try {
+      savePlugin({
+        id: Date.now().toString(),
+        name: pluginName,
+        description: 'A custom WordPress plugin created with Plugin Genius',
+        thumbnail: '/images/plugin-thumbnail.jpg',
+        code: code,
+        createdAt: new Date().toISOString()
+      });
+      
+      // Add to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        `$ Save plugin "${pluginName}"`,
+        'Plugin saved successfully to your library.'
+      ]);
+      
+      alert('Plugin saved successfully!');
+    } catch (error) {
+      console.error('Error saving plugin:', error);
+      alert('Error saving plugin. Please try again.');
+    }
+  };
+  
+  // Handle execute plugin
+  const handleExecutePlugin = () => {
+    if (!code.trim() || isExecuting) return;
     
-    alert('Plugin saved successfully!');
+    setIsExecuting(true);
+    
+    try {
+      // Execute the plugin code
+      const result = executePlugin({ 
+        code, 
+        name: pluginName || 'My Custom Plugin' 
+      });
+      
+      setPluginExecution(result);
+      
+      // Add execution result to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        `$ php -l plugin.php`,
+        result.success 
+          ? 'No syntax errors detected in plugin.php' 
+          : `PHP Parse error: ${result.errors} in plugin.php`,
+        `$ wp plugin activate ${pluginName || 'my-custom-plugin'}`,
+        result.success 
+          ? `Plugin '${pluginName || 'my-custom-plugin'}' activated.` 
+          : `Error: ${result.errors}`
+      ]);
+      
+    } catch (error) {
+      console.error('Error executing plugin:', error);
+      
+      setPluginExecution({
+        success: false,
+        output: '',
+        errors: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+      
+      // Add error to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ Execute plugin',
+        'Error executing plugin. Please check your code and try again.'
+      ]);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+  
+  // Handle build plugin
+  const handleBuildPlugin = async () => {
+    if (!code.trim() || isBuilding) return;
+    
+    if (!pluginName) {
+      alert('Please enter a plugin name before building.');
+      return;
+    }
+    
+    setIsBuilding(true);
+    setBuildResult(null);
+    
+    try {
+      // Build the plugin
+      const result = await buildPlugin({
+        code,
+        name: pluginName,
+        includeAssets: true,
+        includeReadme: true
+      });
+      
+      setBuildResult(result);
+      
+      // Add build result to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        `$ zip -r ${result.filename || 'plugin.zip'} .`,
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/` 
+          : `Error: ${result.error}`,
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/${pluginName || 'my-custom-plugin'}.php` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/readme.txt` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/css/` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/js/` 
+          : '',
+        result.success 
+          ? `Successfully created ${result.filename}` 
+          : ''
+      ]);
+      
+      if (result.success) {
+        // Add download notification to terminal
+        setTerminalOutput(prev => [
+          ...prev,
+          `Plugin zip file "${result.filename}" has been downloaded to your computer.`
+        ]);
+      }
+      
+    } catch (error) {
+      console.error('Error building plugin:', error);
+      
+      setBuildResult({
+        success: false,
+        message: 'Failed to build plugin.',
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+      
+      // Add error to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ Build plugin',
+        'Error building plugin. Please try again.'
+      ]);
+    } finally {
+      setIsBuilding(false);
+    }
   };
   
   return (
@@ -299,9 +510,22 @@ function custom_function_${i + 1}() {
                   <FiSave />
                   <span>Save</span>
                 </button>
-                <button className="action-button">
-                  <FiDownload />
-                  <span>Export</span>
+                <button 
+                  className="action-button"
+                  onClick={handleBuildPlugin}
+                  disabled={isBuilding}
+                >
+                  {isBuilding ? (
+                    <>
+                      <FiLoader className="icon-spin" />
+                      <span>Building...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiDownload />
+                      <span>Build & Export</span>
+                    </>
+                  )}
                 </button>
                 <button className="action-button" onClick={() => window.location.href = '/settings'}>
                   <FiSettings />
@@ -321,6 +545,19 @@ function custom_function_${i + 1}() {
                 >
                   Add API Key
                 </button>
+              </div>
+            )}
+            
+            {buildResult && (
+              <div className={`build-result ${buildResult.success ? 'success' : 'error'}`}>
+                <p>
+                  <strong>{buildResult.success ? 'Build Successful:' : 'Build Failed:'}</strong> {buildResult.message}
+                </p>
+                {buildResult.success && (
+                  <p className="build-note">
+                    The plugin zip file has been downloaded to your computer. You can now install it in WordPress.
+                  </p>
+                )}
               </div>
             )}
             
@@ -430,7 +667,26 @@ function custom_function_${i + 1}() {
                         >
                           {formatting ? 'Formatting...' : 'Format'}
                         </button>
-                        <button className="code-action" onClick={handleSavePlugin}>Save</button>
+                        <button 
+                          className="code-action"
+                          onClick={handleExecutePlugin}
+                          disabled={isExecuting}
+                        >
+                          {isExecuting ? <><FiRefreshCw /> Executing...</> : <><FiPlay /> Execute</>}
+                        </button>
+                        <button 
+                          className="code-action"
+                          onClick={handleBuildPlugin}
+                          disabled={isBuilding}
+                        >
+                          {isBuilding ? <><FiLoader className="icon-spin" /> Building...</> : <><FiPackage /> Build</>}
+                        </button>
+                        <button 
+                          className="code-action" 
+                          onClick={handleSavePlugin}
+                        >
+                          <FiSave /> Save
+                        </button>
                       </div>
                     </div>
                   )}
@@ -464,53 +720,100 @@ function custom_function_${i + 1}() {
                     <FiEye /> Preview
                   </h3>
                   <div className="preview-controls">
-                    <button className="preview-control">Desktop</button>
-                    <button className="preview-control">Tablet</button>
-                    <button className="preview-control">Mobile</button>
+                    <button 
+                      className={`preview-control ${previewMode === 'desktop' ? 'active' : ''}`}
+                      onClick={() => setPreviewMode('desktop')}
+                    >
+                      Desktop
+                    </button>
+                    <button 
+                      className={`preview-control ${previewMode === 'tablet' ? 'active' : ''}`}
+                      onClick={() => setPreviewMode('tablet')}
+                    >
+                      Tablet
+                    </button>
+                    <button 
+                      className={`preview-control ${previewMode === 'mobile' ? 'active' : ''}`}
+                      onClick={() => setPreviewMode('mobile')}
+                    >
+                      Mobile
+                    </button>
                   </div>
                 </div>
                 <div className="preview-content">
-                  <div className="preview-wordpress">
-                    <div className="preview-wp-header">
-                      <div className="preview-wp-logo">W</div>
-                      <div className="preview-wp-title">WordPress Admin</div>
-                    </div>
-                    <div className="preview-wp-sidebar">
-                      <div className="preview-wp-menu-item">Dashboard</div>
-                      <div className="preview-wp-menu-item">Posts</div>
-                      <div className="preview-wp-menu-item">Media</div>
-                      <div className="preview-wp-menu-item">Pages</div>
-                      <div className="preview-wp-menu-item active">Plugins</div>
-                      <div className="preview-wp-menu-item">Appearance</div>
-                      <div className="preview-wp-menu-item">Users</div>
-                      <div className="preview-wp-menu-item">Tools</div>
-                      <div className="preview-wp-menu-item">Settings</div>
-                    </div>
-                    <div className="preview-wp-content">
-                      <div className="preview-wp-page-title">Plugins</div>
-                      <div className="preview-wp-plugin-card">
-                        <div className="preview-wp-plugin-name">{pluginName || 'My Custom Plugin'}</div>
-                        <div className="preview-wp-plugin-description">A custom WordPress plugin created with Plugin Genius</div>
-                        <div className="preview-wp-plugin-actions">
-                          <button className="preview-wp-plugin-action">Activate</button>
-                          <button className="preview-wp-plugin-action">Edit</button>
-                          <button className="preview-wp-plugin-action">Delete</button>
-                        </div>
+                  {pluginExecution && pluginExecution.renderedHtml ? (
+                    // If plugin has been executed, show the rendered HTML
+                    <div 
+                      className={`preview-wordpress preview-${previewMode}`}
+                      dangerouslySetInnerHTML={{ __html: pluginExecution.renderedHtml }}
+                    />
+                  ) : (
+                    // Otherwise show the default WordPress admin preview
+                    <div className={`preview-wordpress preview-${previewMode}`}>
+                      <div className="preview-wp-header">
+                        <div className="preview-wp-logo">W</div>
+                        <div className="preview-wp-title">WordPress Admin</div>
                       </div>
-                      {/* Add more plugin cards to demonstrate scrolling */}
-                      {Array.from({ length: 10 }).map((_, index) => (
-                        <div className="preview-wp-plugin-card" key={index}>
-                          <div className="preview-wp-plugin-name">Sample Plugin {index + 1}</div>
-                          <div className="preview-wp-plugin-description">This is a sample plugin to demonstrate scrolling in the preview panel</div>
+                      <div className="preview-wp-sidebar">
+                        <div className="preview-wp-menu-item">Dashboard</div>
+                        <div className="preview-wp-menu-item">Posts</div>
+                        <div className="preview-wp-menu-item">Media</div>
+                        <div className="preview-wp-menu-item">Pages</div>
+                        <div className="preview-wp-menu-item active">Plugins</div>
+                        <div className="preview-wp-menu-item">Appearance</div>
+                        <div className="preview-wp-menu-item">Users</div>
+                        <div className="preview-wp-menu-item">Tools</div>
+                        <div className="preview-wp-menu-item">Settings</div>
+                      </div>
+                      <div className="preview-wp-content">
+                        <div className="preview-wp-page-title">Plugins</div>
+                        <div className="preview-wp-plugin-card">
+                          <div className="preview-wp-plugin-name">{pluginName || 'My Custom Plugin'}</div>
+                          <div className="preview-wp-plugin-description">A custom WordPress plugin created with Plugin Genius</div>
                           <div className="preview-wp-plugin-actions">
-                            <button className="preview-wp-plugin-action">Activate</button>
+                            <button 
+                              className="preview-wp-plugin-action"
+                              onClick={handleExecutePlugin}
+                              disabled={isExecuting}
+                            >
+                              {isExecuting ? 'Activating...' : 'Activate'}
+                            </button>
                             <button className="preview-wp-plugin-action">Edit</button>
                             <button className="preview-wp-plugin-action">Delete</button>
                           </div>
                         </div>
-                      ))}
+                        
+                        {/* Display execution status if plugin has been executed */}
+                        {pluginExecution && (
+                          <div className={`wp-preview-status ${pluginExecution.success ? 'success' : 'error'}`}>
+                            {pluginExecution.success 
+                              ? `Plugin "${pluginName || 'My Custom Plugin'}" activated successfully.` 
+                              : `Error: ${pluginExecution.errors}`}
+                          </div>
+                        )}
+                        
+                        {/* Display execution log if plugin has been executed */}
+                        {pluginExecution && pluginExecution.output && (
+                          <div className="wp-preview-log">
+                            {pluginExecution.output}
+                          </div>
+                        )}
+                        
+                        {/* Add more plugin cards to demonstrate scrolling */}
+                        {Array.from({ length: 10 }).map((_, index) => (
+                          <div className="preview-wp-plugin-card" key={index}>
+                            <div className="preview-wp-plugin-name">Sample Plugin {index + 1}</div>
+                            <div className="preview-wp-plugin-description">This is a sample plugin to demonstrate scrolling in the preview panel</div>
+                            <div className="preview-wp-plugin-actions">
+                              <button className="preview-wp-plugin-action">Activate</button>
+                              <button className="preview-wp-plugin-action">Edit</button>
+                              <button className="preview-wp-plugin-action">Delete</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
