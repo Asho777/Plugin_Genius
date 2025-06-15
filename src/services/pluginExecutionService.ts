@@ -1,361 +1,286 @@
-import { Plugin } from '../pages/TemplatesPage'
+import { DOMParser } from 'xmldom';
+
+// Interface for plugin execution options
+export interface PluginExecutionOptions {
+  code: string;
+  name?: string;
+}
 
 // Interface for plugin execution result
 export interface PluginExecutionResult {
-  success: boolean
-  output: string
-  errors?: string
-  renderedHtml?: string
+  success: boolean;
+  output: string;
+  errors: string;
+  renderedHtml?: string;
 }
 
-// Function to parse PHP code and extract plugin metadata
-export const extractPluginMetadata = (phpCode: string): Record<string, string> => {
-  const metadata: Record<string, string> = {}
+/**
+ * Extract plugin metadata from PHP code
+ */
+export const extractPluginMetadata = (code: string): Record<string, string> => {
+  const metadata: Record<string, string> = {};
   
   // Extract plugin header information
-  const headerRegex = /\/\*\*[\s\S]*?\*\//
-  const headerMatch = phpCode.match(headerRegex)
+  const headerRegex = /\/\*\*[\s\S]*?Plugin Name:[\s\S]*?\*\//;
+  const headerMatch = code.match(headerRegex);
   
   if (headerMatch) {
-    const header = headerMatch[0]
+    const header = headerMatch[0];
     
-    // Extract common plugin header fields
+    // Extract individual metadata fields
     const fields = [
-      { name: 'name', regex: /Plugin Name:\s*(.+)$/m },
-      { name: 'description', regex: /Description:\s*(.+)$/m },
-      { name: 'version', regex: /Version:\s*(.+)$/m },
-      { name: 'author', regex: /Author:\s*(.+)$/m },
-      { name: 'authorUri', regex: /Author URI:\s*(.+)$/m },
-      { name: 'textDomain', regex: /Text Domain:\s*(.+)$/m },
-      { name: 'domainPath', regex: /Domain Path:\s*(.+)$/m },
-      { name: 'requires', regex: /Requires at least:\s*(.+)$/m },
-      { name: 'tested', regex: /Tested up to:\s*(.+)$/m },
-      { name: 'requiresPHP', regex: /Requires PHP:\s*(.+)$/m },
-    ]
+      { key: 'name', regex: /Plugin Name:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'description', regex: /Description:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'version', regex: /Version:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'author', regex: /Author:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'authorUri', regex: /Author URI:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'textDomain', regex: /Text Domain:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'domainPath', regex: /Domain Path:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'requires', regex: /Requires at least:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'tested', regex: /Tested up to:\s*(.+?)(\r?\n|\*\/)/i },
+      { key: 'requiresPHP', regex: /Requires PHP:\s*(.+?)(\r?\n|\*\/)/i },
+    ];
     
     fields.forEach(field => {
-      const match = header.match(field.regex)
+      const match = header.match(field.regex);
       if (match && match[1]) {
-        metadata[field.name] = match[1].trim()
+        metadata[field.key] = match[1].trim();
       }
-    })
+    });
   }
   
-  return metadata
-}
+  return metadata;
+};
 
-// Function to analyze plugin code and identify hooks, shortcodes, and other WordPress features
-export const analyzePluginCode = (phpCode: string): Record<string, any> => {
-  const analysis: Record<string, any> = {
-    hooks: {
-      actions: [],
-      filters: []
-    },
-    shortcodes: [],
-    widgets: [],
-    blocks: [],
-    adminPages: [],
-    customPostTypes: [],
-    customTaxonomies: [],
-    restEndpoints: []
-  }
-  
-  // Extract action hooks
-  const actionRegex = /add_action\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?([^,'"]+)['"]?/g
-  let actionMatch
-  while ((actionMatch = actionRegex.exec(phpCode)) !== null) {
-    analysis.hooks.actions.push({
-      hook: actionMatch[1],
-      callback: actionMatch[2]
-    })
-  }
-  
-  // Extract filter hooks
-  const filterRegex = /add_filter\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?([^,'"]+)['"]?/g
-  let filterMatch
-  while ((filterMatch = filterRegex.exec(phpCode)) !== null) {
-    analysis.hooks.filters.push({
-      hook: filterMatch[1],
-      callback: filterMatch[2]
-    })
-  }
-  
-  // Extract shortcodes
-  const shortcodeRegex = /add_shortcode\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?([^,'"]+)['"]?/g
-  let shortcodeMatch
-  while ((shortcodeMatch = shortcodeRegex.exec(phpCode)) !== null) {
-    analysis.shortcodes.push({
-      tag: shortcodeMatch[1],
-      callback: shortcodeMatch[2]
-    })
-  }
-  
-  // Extract custom post types
-  const cptRegex = /register_post_type\s*\(\s*['"]([^'"]+)['"]/g
-  let cptMatch
-  while ((cptMatch = cptRegex.exec(phpCode)) !== null) {
-    analysis.customPostTypes.push(cptMatch[1])
-  }
-  
-  // Extract custom taxonomies
-  const taxRegex = /register_taxonomy\s*\(\s*['"]([^'"]+)['"]/g
-  let taxMatch
-  while ((taxMatch = taxRegex.exec(phpCode)) !== null) {
-    analysis.customTaxonomies.push(taxMatch[1])
-  }
-  
-  // Extract admin pages
-  const adminPageRegex = /add_menu_page\s*\(\s*['"]([^'"]+)['"]/g
-  let adminPageMatch
-  while ((adminPageMatch = adminPageRegex.exec(phpCode)) !== null) {
-    analysis.adminPages.push(adminPageMatch[1])
-  }
-  
-  // Extract blocks
-  const blockRegex = /register_block_type\s*\(\s*['"]([^'"]+)['"]/g
-  let blockMatch
-  while ((blockMatch = blockRegex.exec(phpCode)) !== null) {
-    analysis.blocks.push(blockMatch[1])
-  }
-  
-  return analysis
-}
-
-// Function to simulate WordPress plugin execution
-export const executePlugin = (plugin: { code: string, name?: string }): PluginExecutionResult => {
+/**
+ * Execute WordPress plugin code and return the result
+ */
+export const executePlugin = (options: PluginExecutionOptions): PluginExecutionResult => {
   try {
+    const { code } = options;
+    
+    // Basic PHP syntax validation
+    validatePhpSyntax(code);
+    
     // Extract plugin metadata
-    const metadata = extractPluginMetadata(plugin.code)
+    const metadata = extractPluginMetadata(code);
     
-    // Analyze plugin code
-    const analysis = analyzePluginCode(plugin.code)
+    // Simulate plugin execution
+    const output = simulatePluginExecution(code, metadata);
     
-    // Generate simulated output based on the plugin analysis
-    let output = `Plugin "${metadata.name || plugin.name || 'Unnamed Plugin'}" executed successfully.\n\n`
-    
-    // Add metadata to output
-    output += "Plugin Metadata:\n"
-    Object.entries(metadata).forEach(([key, value]) => {
-      output += `- ${key}: ${value}\n`
-    })
-    
-    // Add hooks information
-    if (analysis.hooks.actions.length > 0) {
-      output += "\nAction Hooks:\n"
-      analysis.hooks.actions.forEach((action: { hook: string, callback: string }) => {
-        output += `- ${action.hook} => ${action.callback}()\n`
-      })
-    }
-    
-    if (analysis.hooks.filters.length > 0) {
-      output += "\nFilter Hooks:\n"
-      analysis.hooks.filters.forEach((filter: { hook: string, callback: string }) => {
-        output += `- ${filter.hook} => ${filter.callback}()\n`
-      })
-    }
-    
-    // Add shortcodes information
-    if (analysis.shortcodes.length > 0) {
-      output += "\nShortcodes:\n"
-      analysis.shortcodes.forEach((shortcode: { tag: string, callback: string }) => {
-        output += `- [${shortcode.tag}] => ${shortcode.callback}()\n`
-      })
-    }
-    
-    // Add custom post types
-    if (analysis.customPostTypes.length > 0) {
-      output += "\nCustom Post Types:\n"
-      analysis.customPostTypes.forEach((cpt: string) => {
-        output += `- ${cpt}\n`
-      })
-    }
-    
-    // Add custom taxonomies
-    if (analysis.customTaxonomies.length > 0) {
-      output += "\nCustom Taxonomies:\n"
-      analysis.customTaxonomies.forEach((tax: string) => {
-        output += `- ${tax}\n`
-      })
-    }
-    
-    // Add admin pages
-    if (analysis.adminPages.length > 0) {
-      output += "\nAdmin Pages:\n"
-      analysis.adminPages.forEach((page: string) => {
-        output += `- ${page}\n`
-      })
-    }
-    
-    // Add blocks
-    if (analysis.blocks.length > 0) {
-      output += "\nGutenberg Blocks:\n"
-      analysis.blocks.forEach((block: string) => {
-        output += `- ${block}\n`
-      })
-    }
-    
-    // Generate simulated HTML output for preview
-    const renderedHtml = generatePluginPreviewHtml(metadata, analysis)
+    // Generate a simple HTML preview
+    const renderedHtml = generateHtmlPreview(code, metadata);
     
     return {
       success: true,
       output,
+      errors: '',
       renderedHtml
-    }
+    };
   } catch (error) {
-    console.error('Error executing plugin:', error)
+    console.error('Error executing plugin:', error);
+    
     return {
       success: false,
       output: '',
-      errors: error instanceof Error ? error.message : 'Unknown error occurred'
-    }
+      errors: error instanceof Error ? error.message : 'Unknown error occurred',
+      renderedHtml: undefined
+    };
   }
-}
+};
 
-// Function to generate HTML preview for the plugin
-const generatePluginPreviewHtml = (
-  metadata: Record<string, string>, 
-  analysis: Record<string, any>
-): string => {
-  // Start with basic WordPress admin structure
+/**
+ * Validate PHP syntax
+ */
+const validatePhpSyntax = (code: string): void => {
+  // Check for opening and closing PHP tags
+  if (!code.includes('<?php')) {
+    throw new Error('Missing opening PHP tag (<?php)');
+  }
+  
+  // Check for balanced braces
+  const openBraces = (code.match(/\{/g) || []).length;
+  const closeBraces = (code.match(/\}/g) || []).length;
+  
+  if (openBraces !== closeBraces) {
+    throw new Error(`Unbalanced braces: ${openBraces} opening vs ${closeBraces} closing`);
+  }
+  
+  // Check for common PHP syntax errors
+  if (code.includes('<?') && !code.includes('<?php') && !code.includes('<?=')) {
+    throw new Error('Short open tags (<?) are not recommended. Use <?php instead.');
+  }
+  
+  // Check for unclosed strings
+  const singleQuotes = (code.match(/'/g) || []).length;
+  if (singleQuotes % 2 !== 0) {
+    throw new Error('Unclosed single quote detected');
+  }
+  
+  const doubleQuotes = (code.match(/"/g) || []).length;
+  if (doubleQuotes % 2 !== 0) {
+    throw new Error('Unclosed double quote detected');
+  }
+};
+
+/**
+ * Simulate plugin execution
+ */
+const simulatePluginExecution = (code: string, metadata: Record<string, string>): string => {
+  let output = '';
+  
+  // Check for common WordPress hooks
+  if (code.includes('add_action') || code.includes('add_filter')) {
+    output += 'WordPress hooks detected and registered.\n';
+  }
+  
+  // Check for shortcodes
+  if (code.includes('add_shortcode')) {
+    output += 'Shortcodes registered.\n';
+  }
+  
+  // Check for widgets
+  if (code.includes('register_widget') || (code.includes('extends WP_Widget') && code.includes('register_widget'))) {
+    output += 'Widgets registered.\n';
+  }
+  
+  // Check for blocks
+  if (code.includes('register_block_type')) {
+    output += 'Gutenberg blocks registered.\n';
+  }
+  
+  // Check for admin pages
+  if (code.includes('add_menu_page') || code.includes('add_submenu_page')) {
+    output += 'Admin pages registered.\n';
+  }
+  
+  // Check for REST API endpoints
+  if (code.includes('register_rest_route')) {
+    output += 'REST API endpoints registered.\n';
+  }
+  
+  // Check for custom post types
+  if (code.includes('register_post_type')) {
+    output += 'Custom post types registered.\n';
+  }
+  
+  // Check for custom taxonomies
+  if (code.includes('register_taxonomy')) {
+    output += 'Custom taxonomies registered.\n';
+  }
+  
+  // Check for database operations
+  if (code.includes('$wpdb')) {
+    output += 'Database operations detected.\n';
+  }
+  
+  // If no specific features were detected
+  if (output === '') {
+    output = 'Plugin activated successfully, but no specific WordPress features were detected.';
+  } else {
+    output = `Plugin "${metadata.name || 'Unknown'}" activated successfully.\n\n` + output;
+  }
+  
+  return output;
+};
+
+/**
+ * Generate a simple HTML preview for the plugin
+ */
+const generateHtmlPreview = (code: string, metadata: Record<string, string>): string => {
+  const pluginName = metadata.name || 'Unknown Plugin';
+  const description = metadata.description || 'No description provided.';
+  const version = metadata.version || '1.0.0';
+  const author = metadata.author || 'Unknown';
+  
+  // Determine plugin type and features
+  const hasShortcodes = code.includes('add_shortcode');
+  const hasWidgets = code.includes('register_widget') || (code.includes('extends WP_Widget') && code.includes('register_widget'));
+  const hasBlocks = code.includes('register_block_type');
+  const hasAdminPages = code.includes('add_menu_page') || code.includes('add_submenu_page');
+  const hasRestApi = code.includes('register_rest_route');
+  const hasCustomPostTypes = code.includes('register_post_type');
+  const hasCustomTaxonomies = code.includes('register_taxonomy');
+  const hasDatabaseOperations = code.includes('$wpdb');
+  
+  // Create HTML preview
   let html = `
-    <div class="wp-preview-container">
-      <div class="wp-preview-header">
-        <h2>${metadata.name || 'Plugin Preview'}</h2>
-        <p class="wp-preview-description">${metadata.description || 'No description provided'}</p>
-      </div>
-      <div class="wp-preview-content">
-  `
-  
-  // Add plugin features based on analysis
-  
-  // Add shortcodes preview if any
-  if (analysis.shortcodes.length > 0) {
-    html += `
-      <div class="wp-preview-section">
-        <h3>Shortcodes</h3>
-        <div class="wp-preview-shortcodes">
-    `
-    
-    analysis.shortcodes.forEach((shortcode: { tag: string }) => {
-      html += `
-        <div class="wp-preview-shortcode">
-          <div class="wp-preview-shortcode-tag">[${shortcode.tag}]</div>
-          <div class="wp-preview-shortcode-output">
-            <p>Shortcode Output Preview</p>
-            <div class="wp-preview-placeholder"></div>
-          </div>
+    <div class="preview-wp-header">
+      <div class="preview-wp-logo">W</div>
+      <div class="preview-wp-title">WordPress Admin</div>
+    </div>
+    <div class="preview-wp-sidebar">
+      <div class="preview-wp-menu-item">Dashboard</div>
+      <div class="preview-wp-menu-item">Posts</div>
+      <div class="preview-wp-menu-item">Media</div>
+      <div class="preview-wp-menu-item">Pages</div>
+      <div class="preview-wp-menu-item active">Plugins</div>
+      <div class="preview-wp-menu-item">Appearance</div>
+      <div class="preview-wp-menu-item">Users</div>
+      <div class="preview-wp-menu-item">Tools</div>
+      <div class="preview-wp-menu-item">Settings</div>
+    </div>
+    <div class="preview-wp-content">
+      <div class="preview-wp-page-title">Plugins</div>
+      
+      <div class="preview-wp-plugin-card active-plugin">
+        <div class="preview-wp-plugin-name">${pluginName}</div>
+        <div class="preview-wp-plugin-description">${description}</div>
+        <div class="preview-wp-plugin-meta">
+          <span>Version: ${version}</span>
+          <span>Author: ${author}</span>
         </div>
-      `
-    })
-    
-    html += `
+        <div class="preview-wp-plugin-status success">
+          Plugin activated successfully
+        </div>
+        <div class="preview-wp-plugin-actions">
+          <button class="preview-wp-plugin-action">Settings</button>
+          <button class="preview-wp-plugin-action">Deactivate</button>
         </div>
       </div>
-    `
+      
+      <div class="preview-wp-plugin-features">
+        <h3>Plugin Features</h3>
+        <ul>
+  `;
+  
+  // Add detected features
+  if (hasShortcodes) {
+    html += `<li>Shortcodes</li>`;
+  }
+  if (hasWidgets) {
+    html += `<li>Widgets</li>`;
+  }
+  if (hasBlocks) {
+    html += `<li>Gutenberg Blocks</li>`;
+  }
+  if (hasAdminPages) {
+    html += `<li>Admin Pages</li>`;
+  }
+  if (hasRestApi) {
+    html += `<li>REST API Endpoints</li>`;
+  }
+  if (hasCustomPostTypes) {
+    html += `<li>Custom Post Types</li>`;
+  }
+  if (hasCustomTaxonomies) {
+    html += `<li>Custom Taxonomies</li>`;
+  }
+  if (hasDatabaseOperations) {
+    html += `<li>Database Operations</li>`;
   }
   
-  // Add custom post types preview if any
-  if (analysis.customPostTypes.length > 0) {
-    html += `
-      <div class="wp-preview-section">
-        <h3>Custom Post Types</h3>
-        <div class="wp-preview-cpt">
-    `
-    
-    analysis.customPostTypes.forEach((cpt: string) => {
-      html += `
-        <div class="wp-preview-cpt-item">
-          <h4>${cpt}</h4>
-          <div class="wp-preview-cpt-posts">
-            <div class="wp-preview-post">
-              <h5>Sample ${cpt} #1</h5>
-              <p>This is a sample post of the custom post type.</p>
-            </div>
-            <div class="wp-preview-post">
-              <h5>Sample ${cpt} #2</h5>
-              <p>This is another sample post of the custom post type.</p>
-            </div>
-          </div>
-        </div>
-      `
-    })
-    
-    html += `
-        </div>
-      </div>
-    `
+  // If no features were detected
+  if (!hasShortcodes && !hasWidgets && !hasBlocks && !hasAdminPages && 
+      !hasRestApi && !hasCustomPostTypes && !hasCustomTaxonomies && !hasDatabaseOperations) {
+    html += `<li>Basic WordPress Plugin</li>`;
   }
   
-  // Add admin pages preview if any
-  if (analysis.adminPages.length > 0) {
-    html += `
-      <div class="wp-preview-section">
-        <h3>Admin Pages</h3>
-        <div class="wp-preview-admin-pages">
-    `
-    
-    analysis.adminPages.forEach((page: string) => {
-      html += `
-        <div class="wp-preview-admin-page">
-          <h4>${page}</h4>
-          <div class="wp-preview-admin-content">
-            <div class="wp-preview-form">
-              <div class="wp-preview-form-field">
-                <label>Sample Setting</label>
-                <input type="text" value="Sample Value" disabled />
-              </div>
-              <div class="wp-preview-form-field">
-                <label>Another Setting</label>
-                <select disabled>
-                  <option>Option 1</option>
-                  <option>Option 2</option>
-                </select>
-              </div>
-              <button class="wp-preview-button" disabled>Save Changes</button>
-            </div>
-          </div>
-        </div>
-      `
-    })
-    
-    html += `
-        </div>
-      </div>
-    `
-  }
-  
-  // Add blocks preview if any
-  if (analysis.blocks.length > 0) {
-    html += `
-      <div class="wp-preview-section">
-        <h3>Gutenberg Blocks</h3>
-        <div class="wp-preview-blocks">
-    `
-    
-    analysis.blocks.forEach((block: string) => {
-      html += `
-        <div class="wp-preview-block">
-          <h4>${block}</h4>
-          <div class="wp-preview-block-content">
-            <div class="wp-preview-placeholder"></div>
-            <p>Block Content Preview</p>
-          </div>
-        </div>
-      `
-    })
-    
-    html += `
-        </div>
-      </div>
-    `
-  }
-  
-  // Close main containers
   html += `
+        </ul>
       </div>
     </div>
-  `
+  `;
   
-  return html
-}
+  return html;
+};
