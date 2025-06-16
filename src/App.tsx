@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import HomePage from './pages/HomePage'
@@ -14,10 +14,15 @@ import CreatePluginPage from './pages/CreatePluginPage'
 import SplashScreen from './components/common/SplashScreen'
 import LoadingScreen from './components/common/LoadingScreen'
 import './App.css'
+import { useScrollReset } from './hooks/useScrollReset'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const location = useLocation()
+  
+  // Use the scroll reset hook
+  useScrollReset();
 
   useEffect(() => {
     // Get initial session
@@ -35,6 +40,35 @@ function App() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Scroll to top when route changes - enhanced version
+  useEffect(() => {
+    const resetScroll = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Try with auto behavior to override any smooth scrolling
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'auto'
+      });
+    };
+    
+    resetScroll();
+    
+    // Also try with a slight delay
+    const timer = setTimeout(resetScroll, 100);
+    
+    // Try one more time with a longer delay
+    const secondTimer = setTimeout(resetScroll, 300);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(secondTimer);
+    };
+  }, [location.pathname]);
 
   if (loading) {
     return <LoadingScreen />

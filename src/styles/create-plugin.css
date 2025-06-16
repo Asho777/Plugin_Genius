@@ -1,3 +1,18 @@
+/* Force the page to start at the top */
+html, body {
+  scroll-behavior: auto;
+  overflow-anchor: none;
+}
+
+.create-plugin-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-black);
+  color: var(--color-white);
+  scroll-margin-top: 0;
+}
+
 /* Create Plugin Page Styles */
 .create-plugin-page {
   min-height: 100vh;
@@ -5,6 +20,14 @@
   flex-direction: column;
   background-color: var(--color-black);
   color: var(--color-white);
+}
+
+/* Add styles for the non-sticky navbar container */
+.create-plugin-navbar {
+  position: relative;
+  z-index: 1000;
+  background-color: var(--color-dark-gray);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
 }
 
 .create-plugin-content {
@@ -98,6 +121,8 @@
   color: var(--color-light-gray);
   cursor: pointer;
   transition: all 0.2s ease;
+  /* Prevent scroll anchoring on these buttons */
+  overflow-anchor: none;
 }
 
 .ai-option:hover {
@@ -210,7 +235,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-lg);
-  height: 600px; /* Set explicit height for the layout */
+  height: 700px; /* Increased from 600px to 650px (50px taller) */
 }
 
 .workspace-sidebar {
@@ -798,11 +823,11 @@
   
   .workspace-sidebar {
     margin-bottom: var(--spacing-lg);
-    height: 600px; /* Fixed height on smaller screens */
+    height: 700px; /* Updated from 600px to 650px to match the main layout height */
   }
   
   .preview-panel {
-    height: 600px; /* Fixed height on smaller screens */
+    height: 700px; /* Updated from 600px to 650px to match the main layout height */
   }
 }
 

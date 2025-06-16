@@ -10,8 +10,16 @@ import { executePlugin, PluginExecutionResult } from '../services/pluginExecutio
 import { buildPlugin, PluginBuildResult } from '../services/pluginBuildService'
 import '../styles/create-plugin.css'
 import '../styles/plugin-preview.css'
+import { useScrollReset } from '../hooks/useScrollReset';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const CreatePluginPage = () => {
+  // Use the scroll reset hook inside the component
+  useScrollReset();
+  
+  // Use scroll lock hook
+  const { lockScroll, unlockScroll } = useScrollLock();
+  
   const [activeAI, setActiveAI] = useState('gpt-4')
   const [pluginName, setPluginName] = useState('')
   const [activeTab, setActiveTab] = useState('chat')
@@ -53,7 +61,37 @@ const CreatePluginPage = () => {
   const [isBuilding, setIsBuilding] = useState(false)
   const [buildResult, setBuildResult] = useState<PluginBuildResult | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollPositionRef = useRef<number>(0)
+  const aiOptionsRef = useRef<HTMLDivElement>(null)
   
+  // Scroll to top when component mounts - with a more forceful approach
+  useEffect(() => {
+    // Immediate scroll
+    window.scrollTo(0, 0);
+    
+    // Also try with a slight delay to ensure it happens after rendering
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Try again with a longer delay as a fallback
+      const secondTimer = setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'auto'
+        });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 300);
+      
+      return () => clearTimeout(secondTimer);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   // Generate more terminal output for scrolling demo
   useEffect(() => {
     const moreOutput = [...terminalOutput];
@@ -147,6 +185,47 @@ function custom_function_${i + 1}() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading]);
+  
+  // Save scroll position before any potential state changes
+  useEffect(() => {
+    const handleScroll = () => {
+      scrollPositionRef.current = window.scrollY;
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  // Add event listeners to prevent scrolling on AI model buttons
+  useEffect(() => {
+    const aiOptionsElement = aiOptionsRef.current;
+    
+    if (aiOptionsElement) {
+      const handleTouchStart = (e: TouchEvent) => {
+        // Prevent default only for AI model buttons
+        const target = e.target as HTMLElement;
+        if (target.classList.contains('ai-option')) {
+          e.preventDefault();
+        }
+      };
+      
+      const handleWheel = (e: WheelEvent) => {
+        // Prevent wheel events from propagating when interacting with AI options
+        const target = e.target as HTMLElement;
+        if (target.classList.contains('ai-option') || target.closest('.ai-options')) {
+          e.stopPropagation();
+        }
+      };
+      
+      aiOptionsElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+      aiOptionsElement.addEventListener('wheel', handleWheel, { passive: false });
+      
+      return () => {
+        aiOptionsElement.removeEventListener('touchstart', handleTouchStart);
+        aiOptionsElement.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, []);
   
   // Handle sending message to AI
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -462,9 +541,43 @@ function custom_function_${i + 1}() {
     }
   };
   
+  // Handle AI model selection with aggressive approach to prevent scrolling
+  const handleAIModelSelect = (modelId: string) => {
+    // Lock scroll before making any changes
+    lockScroll();
+    
+    // Store current scroll position
+    const currentScrollPosition = window.scrollY;
+    
+    // Update the active AI model
+    setActiveAI(modelId);
+    
+    // Use multiple techniques to ensure scroll position is maintained
+    requestAnimationFrame(() => {
+      window.scrollTo(0, currentScrollPosition);
+      
+      // Schedule multiple attempts to restore scroll position
+      setTimeout(() => {
+        window.scrollTo(0, currentScrollPosition);
+        
+        // Unlock scroll after a delay to ensure the position is maintained
+        setTimeout(() => {
+          unlockScroll();
+          
+          // One final scroll position check
+          setTimeout(() => {
+            window.scrollTo(0, currentScrollPosition);
+          }, 50);
+        }, 50);
+      }, 0);
+    });
+  };
+  
   return (
     <div className="create-plugin-page">
-      <Navbar />
+      <div className="create-plugin-navbar">
+        <Navbar />
+      </div>
       
       <main className="create-plugin-content">
         <header className="create-plugin-header">
@@ -493,15 +606,24 @@ function custom_function_${i + 1}() {
           <div className="workspace-container">
             <div className="ai-selector">
               <div className="ai-selector-label">AI Model:</div>
-              <div className="ai-options">
+              <div className="ai-options" ref={aiOptionsRef}>
                 {AI_MODELS.map(ai => (
-                  <button 
+                  <div 
                     key={ai.id}
                     className={`ai-option ${activeAI === ai.id ? 'active' : ''}`}
-                    onClick={() => setActiveAI(ai.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAIModelSelect(ai.id);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
+                    onTouchEnd={(e) => e.preventDefault()}
+                    onTouchMove={(e) => e.preventDefault()}
+                    onWheel={(e) => e.preventDefault()}
                   >
                     {ai.name}
-                  </button>
+                  </div>
                 ))}
               </div>
               

@@ -50,7 +50,7 @@ const HeroSection = () => {
       >
         <div className="hero-image-container">
           <img 
-            src="https://hv85.com/ga/images/Plugin-Genius-Hero-Page-Image.png" 
+            src="https://images.pexels.com/photos/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
             alt="Plugin Genius Dashboard" 
             className="hero-img"
           />
