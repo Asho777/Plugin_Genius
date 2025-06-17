@@ -16,6 +16,13 @@ import LoadingScreen from './components/common/LoadingScreen'
 import './App.css'
 import { useScrollReset } from './hooks/useScrollReset'
 
+// Force scroll to top immediately before app renders
+if (typeof window !== 'undefined') {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
@@ -43,6 +50,20 @@ function App() {
 
   // Scroll to top when route changes - enhanced version
   useEffect(() => {
+    // Create a style element to force the page to the top
+    const styleElement = document.createElement('style');
+    styleElement.id = 'force-top-scroll-style';
+    styleElement.innerHTML = `
+      html, body {
+        scroll-behavior: auto !important;
+        overflow-anchor: none !important;
+        scroll-padding-top: 0 !important;
+        scroll-snap-type: none !important;
+        overscroll-behavior: none !important;
+      }
+    `;
+    document.head.appendChild(styleElement);
+    
     const resetScroll = () => {
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
@@ -56,17 +77,34 @@ function App() {
       });
     };
     
+    // Reset scroll immediately
     resetScroll();
     
     // Also try with a slight delay
-    const timer = setTimeout(resetScroll, 100);
+    const timer = setTimeout(resetScroll, 50);
     
     // Try one more time with a longer delay
-    const secondTimer = setTimeout(resetScroll, 300);
+    const secondTimer = setTimeout(resetScroll, 150);
+    
+    // Final attempt with an even longer delay
+    const thirdTimer = setTimeout(() => {
+      resetScroll();
+      
+      // Remove the style element after all scroll resets are done
+      if (styleElement.parentNode) {
+        document.head.removeChild(styleElement);
+      }
+    }, 300);
     
     return () => {
       clearTimeout(timer);
       clearTimeout(secondTimer);
+      clearTimeout(thirdTimer);
+      
+      // Ensure style element is removed on cleanup
+      if (styleElement.parentNode) {
+        document.head.removeChild(styleElement);
+      }
     };
   }, [location.pathname]);
 

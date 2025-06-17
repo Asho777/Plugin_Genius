@@ -4,6 +4,19 @@ html, body {
   overflow-anchor: none;
 }
 
+/* Disable smooth scrolling temporarily when needed */
+body.disable-smooth-scroll {
+  scroll-behavior: auto !important;
+  overflow-anchor: none !important;
+}
+
+/* Special class for create plugin page */
+body.create-plugin-body {
+  scroll-padding-top: 0 !important;
+  scroll-snap-type: none !important;
+  overscroll-behavior: none !important;
+}
+
 .create-plugin-page {
   min-height: 100vh;
   display: flex;

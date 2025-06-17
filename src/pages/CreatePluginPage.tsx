@@ -13,6 +13,13 @@ import '../styles/plugin-preview.css'
 import { useScrollReset } from '../hooks/useScrollReset';
 import { useScrollLock } from '../hooks/useScrollLock';
 
+// Force scroll to top immediately before component even renders
+if (typeof window !== 'undefined') {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
 const CreatePluginPage = () => {
   // Use the scroll reset hook inside the component
   useScrollReset();
@@ -37,6 +44,7 @@ const CreatePluginPage = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [apiKeyMissing, setApiKeyMissing] = useState(false)
   const [terminalInput, setTerminalInput] = useState('')
+  // Pre-populate terminal output with static content instead of generating it dynamically
   const [terminalOutput, setTerminalOutput] = useState<string[]>([
     '$ npm init -y',
     'Wrote to package.json:',
@@ -52,59 +60,8 @@ const CreatePluginPage = () => {
     'added 1000 packages in 25s',
     '$ _'
   ])
-  const [code, setCode] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [formatting, setFormatting] = useState(false)
-  const [previewMode, setPreviewMode] = useState('desktop')
-  const [pluginExecution, setPluginExecution] = useState<PluginExecutionResult | null>(null)
-  const [isExecuting, setIsExecuting] = useState(false)
-  const [isBuilding, setIsBuilding] = useState(false)
-  const [buildResult, setBuildResult] = useState<PluginBuildResult | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const scrollPositionRef = useRef<number>(0)
-  const aiOptionsRef = useRef<HTMLDivElement>(null)
-  
-  // Scroll to top when component mounts - with a more forceful approach
-  useEffect(() => {
-    // Immediate scroll
-    window.scrollTo(0, 0);
-    
-    // Also try with a slight delay to ensure it happens after rendering
-    const timer = setTimeout(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      
-      // Try again with a longer delay as a fallback
-      const secondTimer = setTimeout(() => {
-        window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'auto'
-        });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      }, 300);
-      
-      return () => clearTimeout(secondTimer);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Generate more terminal output for scrolling demo
-  useEffect(() => {
-    const moreOutput = [...terminalOutput];
-    for (let i = 0; i < 20; i++) {
-      moreOutput.push(`$ echo "Line ${i + 1} - This is sample terminal output to demonstrate scrolling"`);
-      moreOutput.push(`Line ${i + 1} - This is sample terminal output to demonstrate scrolling`);
-    }
-    setTerminalOutput(moreOutput);
-  }, []);
-  
-  // Generate more code for scrolling demo
-  useEffect(() => {
-    let demoCode = `<?php
+  // Pre-populate code with static content instead of generating it dynamically
+  const [code, setCode] = useState(`<?php
 /**
  * Plugin Name: ${pluginName || 'My Custom Plugin'}
  * Description: A custom WordPress plugin created with Plugin Genius
@@ -131,20 +88,157 @@ function register_custom_block() {
         'editor_script' => 'custom-block-editor',
     ));
 }
-add_action('init', 'register_custom_block');`;
-
-    // Add more code to demonstrate scrolling
-    for (let i = 0; i < 20; i++) {
-      demoCode += `\n\n// Function ${i + 1}
-function custom_function_${i + 1}() {
-    // This is a sample function to demonstrate scrolling
-    $value = "Sample value ${i + 1}";
-    return $value;
-}`;
-    }
+add_action('init', 'register_custom_block');`)
+  const [copied, setCopied] = useState(false)
+  const [formatting, setFormatting] = useState(false)
+  const [previewMode, setPreviewMode] = useState('desktop')
+  const [pluginExecution, setPluginExecution] = useState<PluginExecutionResult | null>(null)
+  const [isExecuting, setIsExecuting] = useState(false)
+  const [isBuilding, setIsBuilding] = useState(false)
+  const [buildResult, setBuildResult] = useState<PluginBuildResult | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollPositionRef = useRef<number>(0)
+  const aiOptionsRef = useRef<HTMLDivElement>(null)
+  const pageRef = useRef<HTMLDivElement>(null)
+  const initialRenderRef = useRef(true)
+  
+  // Super aggressive scroll prevention - runs before anything else
+  useEffect(() => {
+    // Create a style element to force the page to the top
+    const styleElement = document.createElement('style');
+    styleElement.id = 'force-top-scroll-style';
+    styleElement.innerHTML = `
+      html, body {
+        scroll-behavior: auto !important;
+        overflow-anchor: none !important;
+        scroll-padding-top: 0 !important;
+        scroll-snap-type: none !important;
+        overscroll-behavior: none !important;
+      }
+      
+      body {
+        position: fixed;
+        width: 100%;
+        top: 0;
+        left: 0;
+      }
+    `;
+    document.head.appendChild(styleElement);
     
-    setCode(demoCode);
-  }, [pluginName]);
+    // Force scroll to top with multiple approaches
+    const forceScrollTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'auto'
+      });
+    };
+    
+    // Execute immediately
+    forceScrollTop();
+    
+    // Use requestAnimationFrame for better timing
+    requestAnimationFrame(() => {
+      forceScrollTop();
+      
+      // Release the body position after a short delay
+      setTimeout(() => {
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        
+        // But keep forcing scroll to top
+        forceScrollTop();
+        
+        // Remove the style element after a delay
+        setTimeout(() => {
+          if (styleElement.parentNode) {
+            document.head.removeChild(styleElement);
+          }
+          
+          // One final force to top
+          forceScrollTop();
+        }, 100);
+      }, 50);
+    });
+    
+    // Add a class to body to disable smooth scrolling temporarily
+    document.body.classList.add('disable-smooth-scroll');
+    document.body.classList.add('create-plugin-body');
+    
+    // Remove the class after a delay
+    const classTimeout = setTimeout(() => {
+      document.body.classList.remove('disable-smooth-scroll');
+    }, 1000);
+    
+    // Return cleanup function
+    return () => {
+      clearTimeout(classTimeout);
+      document.body.classList.remove('disable-smooth-scroll');
+      document.body.classList.remove('create-plugin-body');
+      
+      if (styleElement.parentNode) {
+        document.head.removeChild(styleElement);
+      }
+      
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+    };
+  }, []);
+  
+  // Secondary scroll prevention that runs on mount
+  useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      
+      // Immediately prevent any default scroll behavior
+      if (typeof window !== 'undefined') {
+        // Save the current scroll position
+        const savedPosition = window.scrollY;
+        
+        // Force scroll to top with multiple approaches
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        
+        // Lock scroll temporarily to prevent any automatic scrolling
+        document.body.style.overflow = 'hidden';
+        
+        // Use requestAnimationFrame for better timing
+        requestAnimationFrame(() => {
+          // Force scroll position again
+          window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'auto'
+          });
+          
+          // Unlock scroll after a short delay
+          setTimeout(() => {
+            document.body.style.overflow = '';
+            
+            // One final force to top
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+          }, 50);
+        });
+      }
+    }
+  }, []);
+
+  // REMOVED: Dynamic terminal output generation
+  // This was causing layout shifts after initial render
+  
+  // REMOVED: Dynamic code generation
+  // This was causing layout shifts after initial render
   
   // Check if API key exists
   useEffect(() => {
@@ -573,8 +667,20 @@ function custom_function_${i + 1}() {
     });
   };
   
+  // Update plugin name in code when it changes
+  useEffect(() => {
+    // Only update the code if the plugin name changes and there's a default code template
+    if (code.includes('Plugin Name:')) {
+      const updatedCode = code.replace(
+        /Plugin Name: .*$/m, 
+        `Plugin Name: ${pluginName || 'My Custom Plugin'}`
+      );
+      setCode(updatedCode);
+    }
+  }, [pluginName]);
+  
   return (
-    <div className="create-plugin-page">
+    <div className="create-plugin-page" ref={pageRef}>
       <div className="create-plugin-navbar">
         <Navbar />
       </div>
@@ -920,19 +1026,6 @@ function custom_function_${i + 1}() {
                             {pluginExecution.output}
                           </div>
                         )}
-                        
-                        {/* Add more plugin cards to demonstrate scrolling */}
-                        {Array.from({ length: 10 }).map((_, index) => (
-                          <div className="preview-wp-plugin-card" key={index}>
-                            <div className="preview-wp-plugin-name">Sample Plugin {index + 1}</div>
-                            <div className="preview-wp-plugin-description">This is a sample plugin to demonstrate scrolling in the preview panel</div>
-                            <div className="preview-wp-plugin-actions">
-                              <button className="preview-wp-plugin-action">Activate</button>
-                              <button className="preview-wp-plugin-action">Edit</button>
-                              <button className="preview-wp-plugin-action">Delete</button>
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   )}
