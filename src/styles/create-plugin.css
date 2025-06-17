@@ -99,11 +99,11 @@ body.create-plugin-body {
 }
 
 .workspace-section {
-  padding: 0 var(--spacing-lg);
+  padding: 0 20px; /* Changed from var(--spacing-lg) to exactly 20px */
 }
 
 .workspace-container {
-  max-width: 1200px;
+  width: 100%; /* Changed from max-width: 1200px to width: 100% */
   margin: 0 auto;
 }
 
