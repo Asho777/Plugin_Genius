@@ -101,6 +101,7 @@ add_action('init', 'register_custom_block');`)
   const aiOptionsRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
   const initialRenderRef = useRef(true)
+  const codeEditorRef = useRef<HTMLPreElement>(null)
   
   // Super aggressive scroll prevention - runs before anything else
   useEffect(() => {
@@ -321,6 +322,108 @@ add_action('init', 'register_custom_block');`)
     }
   }, []);
   
+  // Extract and format code from a message
+  const extractCodeFromMessage = (message: string): string | null => {
+    // Try to extract code from PHP code blocks
+    const phpBlockMatch = message.match(/```php\s*([\s\S]*?)\s*```/) || 
+                         message.match(/```\s*(<?php[\s\S]*?)\s*```/);
+    
+    if (phpBlockMatch && phpBlockMatch[1]) {
+      // Ensure PHP code starts with <?php tag
+      const extractedCode = phpBlockMatch[1].startsWith('<?php') 
+        ? phpBlockMatch[1] 
+        : `<?php\n${phpBlockMatch[1]}`;
+      
+      return extractedCode;
+    }
+    
+    // Try to extract inline PHP code
+    const inlinePhpMatch = message.match(/<\?php[\s\S]*?\?>/);
+    if (inlinePhpMatch && inlinePhpMatch[0]) {
+      return inlinePhpMatch[0];
+    }
+    
+    // Try to extract any code block if PHP wasn't found
+    const codeBlockMatch = message.match(/```[\w]*\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch && codeBlockMatch[1]) {
+      return codeBlockMatch[1];
+    }
+    
+    return null;
+  };
+  
+  // Format and transfer code to the code editor
+  const formatAndTransferCode = async (extractedCode: string) => {
+    try {
+      // Format the code
+      const formattedCode = formatCode(extractedCode);
+      
+      // Update the code state
+      setCode(formattedCode);
+      
+      // Add to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ Format and transfer code from AI Chat',
+        'Code extracted, formatted, and transferred to the Code editor.'
+      ]);
+      
+      // Switch to code tab
+      setActiveTab('code');
+      
+      // Log the code to console for debugging
+      console.log("Code transferred to editor:", formattedCode);
+      
+      return true;
+    } catch (error) {
+      console.error('Error formatting code:', error);
+      
+      // Add error to terminal output
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ Format and transfer code from AI Chat',
+        'Error formatting code. Using unformatted code instead.'
+      ]);
+      
+      // Still update the code state with unformatted code
+      setCode(extractedCode);
+      
+      // Switch to code tab
+      setActiveTab('code');
+      
+      // Log the code to console for debugging
+      console.log("Unformatted code transferred to editor:", extractedCode);
+      
+      return false;
+    }
+  };
+  
+  // Process AI response to remove code blocks and add a note about code transfer
+  const processAIResponse = (response: string): string => {
+    // Check if response contains code
+    const hasCode = /```[\w]*\s*([\s\S]*?)\s*```/.test(response) || 
+                   /<\?php[\s\S]*?\?>/.test(response);
+    
+    if (!hasCode) {
+      return response;
+    }
+    
+    // Replace code blocks with a note
+    let processedResponse = response.replace(/```[\w]*\s*([\s\S]*?)\s*```/g, 
+      '```\n[Code has been transferred to the Code tab]\n```');
+    
+    // Replace inline PHP code
+    processedResponse = processedResponse.replace(/<\?php[\s\S]*?\?>/g, 
+      '[PHP code has been transferred to the Code tab]');
+    
+    // Add a note at the end if it's not already there
+    if (!processedResponse.includes('transferred to the Code tab')) {
+      processedResponse += '\n\n**Note:** All code has been transferred to the Code tab.';
+    }
+    
+    return processedResponse;
+  };
+  
   // Handle sending message to AI
   const handleSendMessage = async (e?: React.FormEvent) => {
     // Prevent default form submission behavior if event is provided
@@ -344,33 +447,23 @@ add_action('init', 'register_custom_block');`)
       // Send message to AI
       const response = await sendMessage(activeAI, newMessages);
       
+      // Extract code from response before processing
+      const extractedCode = extractCodeFromMessage(response);
+      
+      // Process response to remove code blocks
+      const processedResponse = processAIResponse(response);
+      
       // Add AI response to chat
       setMessages([
         ...newMessages,
-        { role: 'assistant', content: response }
+        { role: 'assistant', content: processedResponse }
       ]);
       
-      // Update code if response contains PHP code
-      if (response.includes('<?php') && response.includes('?>')) {
-        const codeMatch = response.match(/```php\s*([\s\S]*?)\s*```/) || 
-                         response.match(/```\s*(<?php[\s\S]*?)\s*```/) ||
-                         response.match(/<\?php[\s\S]*?\?>/);
-        
-        if (codeMatch && codeMatch[1]) {
-          const extractedCode = codeMatch[1].replace(/^<\?php/, '<?php');
-          setCode(extractedCode);
-          
-          // Add to terminal output
-          setTerminalOutput(prev => [
-            ...prev,
-            '$ Extracted PHP code from AI response',
-            'Code extracted successfully and placed in editor.'
-          ]);
-          
-          // Switch to code tab
-          setActiveTab('code');
-        }
+      // If code was found, transfer it to the code editor
+      if (extractedCode) {
+        await formatAndTransferCode(extractedCode);
       }
+      
     } catch (error) {
       console.error('Error sending message:', error);
       
@@ -387,6 +480,25 @@ add_action('init', 'register_custom_block');`)
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Handle transferring code from a specific message
+  const handleTransferCodeFromMessage = async (messageContent: string) => {
+    const extractedCode = extractCodeFromMessage(messageContent);
+    
+    if (extractedCode) {
+      await formatAndTransferCode(extractedCode);
+      return true;
+    }
+    
+    // If no code was found, add a message to the terminal
+    setTerminalOutput(prev => [
+      ...prev,
+      '$ Transfer code from message',
+      'No code found in the selected message.'
+    ]);
+    
+    return false;
   };
   
   // Handle terminal command
@@ -411,23 +523,139 @@ add_action('init', 'register_custom_block');`)
         }
       } else if (command.startsWith('wp ')) {
         // Simulate WordPress CLI
-        setTerminalOutput(prev => [
-          ...prev,
-          'WordPress CLI command executed successfully.'
-        ]);
+        if (command.includes('plugin activate')) {
+          handleExecutePlugin();
+          setTerminalOutput(prev => [
+            ...prev,
+            `Plugin '${pluginName || 'my-custom-plugin'}' activated.`,
+            'Success: Activated 1 of 1 plugins.'
+          ]);
+        } else if (command.includes('plugin install')) {
+          setTerminalOutput(prev => [
+            ...prev,
+            'Installing plugin...',
+            'Plugin installed successfully.',
+            'Activating plugin...',
+            `Plugin '${pluginName || 'my-custom-plugin'}' activated.`,
+            'Success: Installed and activated 1 of 1 plugins.'
+          ]);
+        } else {
+          setTerminalOutput(prev => [
+            ...prev,
+            'WordPress CLI command executed successfully.'
+          ]);
+        }
       } else if (command.startsWith('npm ') || command.startsWith('yarn ')) {
         // Simulate package manager
-        setTerminalOutput(prev => [
-          ...prev,
-          'Installing packages...',
-          'Packages installed successfully.'
-        ]);
+        if (command.includes('install') || command.includes('add')) {
+          setTerminalOutput(prev => [
+            ...prev,
+            'Installing packages...',
+            'added 120 packages in 3.5s',
+            'Packages installed successfully.'
+          ]);
+        } else if (command.includes('build')) {
+          setTerminalOutput(prev => [
+            ...prev,
+            'Building project...',
+            'Creating an optimized production build...',
+            'Compiled successfully.',
+            'Build complete.'
+          ]);
+          handleBuildPlugin();
+        } else if (command.includes('start') || command.includes('dev')) {
+          setTerminalOutput(prev => [
+            ...prev,
+            'Starting development server...',
+            'Server running at http://localhost:3000',
+            'Ready for development.'
+          ]);
+        } else {
+          setTerminalOutput(prev => [
+            ...prev,
+            'npm command executed successfully.'
+          ]);
+        }
       } else if (command.startsWith('zip ')) {
         // Simulate zip creation
         handleBuildPlugin();
       } else if (command === 'clear' || command === 'cls') {
         // Clear terminal
         setTerminalOutput(['Terminal cleared.']);
+      } else if (command === 'extract-code' || command === 'get-code') {
+        // Extract code from the last AI message
+        const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
+        if (lastAiMessage) {
+          handleTransferCodeFromMessage(lastAiMessage.content);
+        } else {
+          setTerminalOutput(prev => [
+            ...prev,
+            'No AI messages found to extract code from.'
+          ]);
+        }
+      } else if (command === 'show-code') {
+        // Log current code to terminal
+        setTerminalOutput(prev => [
+          ...prev,
+          'Current code in editor:',
+          '---',
+          code,
+          '---'
+        ]);
+      } else if (command === 'execute' || command === 'run') {
+        // Execute the plugin
+        handleExecutePlugin();
+      } else if (command === 'build') {
+        // Build the plugin
+        handleBuildPlugin();
+      } else if (command === 'save') {
+        // Save the plugin
+        handleSavePlugin();
+      } else if (command === 'help') {
+        // Show help
+        setTerminalOutput(prev => [
+          ...prev,
+          'Available commands:',
+          '  php <file.php>         - Execute PHP code',
+          '  wp plugin activate     - Activate WordPress plugin',
+          '  wp plugin install      - Install WordPress plugin',
+          '  npm install <package>  - Install npm package',
+          '  npm build              - Build project',
+          '  npm start              - Start development server',
+          '  zip <filename>         - Create zip archive',
+          '  clear, cls             - Clear terminal',
+          '  extract-code, get-code - Extract code from AI message',
+          '  show-code              - Show current code',
+          '  execute, run           - Execute plugin',
+          '  build                  - Build plugin',
+          '  save                   - Save plugin',
+          '  help                   - Show this help'
+        ]);
+      } else if (command === 'ls' || command === 'dir') {
+        // List files
+        setTerminalOutput(prev => [
+          ...prev,
+          'Directory listing:',
+          `${pluginName || 'my-custom-plugin'}/`,
+          `├── ${pluginName || 'my-custom-plugin'}.php`,
+          '├── assets/',
+          '│   ├── css/',
+          '│   │   └── style.css',
+          '│   └── js/',
+          '│       └── script.js',
+          '├── includes/',
+          '│   └── functions.php',
+          '└── readme.txt'
+        ]);
+      } else if (command === 'cat' && command.includes('.php')) {
+        // Show file content
+        setTerminalOutput(prev => [
+          ...prev,
+          'File content:',
+          '---',
+          code,
+          '---'
+        ]);
       } else {
         // Generic response
         setTerminalOutput(prev => [
@@ -828,7 +1056,23 @@ add_action('init', 'register_custom_block');`)
                               {message.role === 'assistant' ? 'AI' : 'You'}
                             </div>
                             <div className="message-content">
-                              <p>{message.content}</p>
+                              <div dangerouslySetInnerHTML={{ __html: message.content.replace(/```([\s\S]*?)```/g, (match, code) => {
+                                return `<pre style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${code}</pre>`;
+                              })}} />
+                              {message.role === 'assistant' && extractCodeFromMessage(message.content) && (
+                                <button 
+                                  className="code-action" 
+                                  style={{ 
+                                    marginTop: '10px', 
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                  }}
+                                  onClick={() => handleTransferCodeFromMessage(message.content)}
+                                >
+                                  <FiCode /> Use this code
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -877,7 +1121,7 @@ add_action('init', 'register_custom_block');`)
                   {activeTab === 'code' && (
                     <div className="code-panel">
                       <div className="code-editor">
-                        <pre className="code-content">
+                        <pre className="code-content" ref={codeEditorRef}>
                           {code}
                         </pre>
                       </div>
@@ -931,7 +1175,7 @@ add_action('init', 'register_custom_block');`)
                         <input 
                           type="text" 
                           className="terminal-input" 
-                          placeholder="Enter command..." 
+                          placeholder="Enter command... (type 'help' for commands)" 
                           value={terminalInput}
                           onChange={(e) => setTerminalInput(e.target.value)}
                           onKeyDown={handleTerminalCommand}
