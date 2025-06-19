@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader } from 'react-icons/fi'
+import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader, FiBook } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import { AI_MODELS, Message, sendMessage, getApiKey } from '../services/aiService'
@@ -27,13 +27,13 @@ const CreatePluginPage = () => {
   // Use scroll lock hook
   const { lockScroll, unlockScroll } = useScrollLock();
   
-  const [activeAI, setActiveAI] = useState('gpt-4')
+  const [activeAI, setActiveAI] = useState('gpt-4-1')
   const [pluginName, setPluginName] = useState('')
   const [activeTab, setActiveTab] = useState('chat')
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'system',
-      content: AI_MODELS.find(model => model.id === 'gpt-4')?.systemPrompt || ''
+      content: AI_MODELS.find(model => model.id === 'gpt-4-1')?.systemPrompt || ''
     },
     {
       role: 'assistant',
@@ -60,13 +60,18 @@ const CreatePluginPage = () => {
     'added 1000 packages in 25s',
     '$ _'
   ])
-  // Pre-populate code with static content instead of generating it dynamically
+  // Pre-populate code with a more premium WordPress plugin template
   const [code, setCode] = useState(`<?php
 /**
  * Plugin Name: ${pluginName || 'My Custom Plugin'}
- * Description: A custom WordPress plugin created with Plugin Genius
+ * Description: A premium WordPress plugin created with Plugin Genius
  * Version: 1.0.0
  * Author: Plugin Genius
+ * Author URI: https://plugingenius.ai
+ * Text Domain: ${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}
+ * Domain Path: /languages
+ * License: GPL v2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  */
 
 // Exit if accessed directly
@@ -74,21 +79,426 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Register block
-function register_custom_block() {
-    // Register script
-    wp_register_script(
-        'custom-block-editor',
-        plugins_url('block.js', __FILE__),
-        array('wp-blocks', 'wp-element', 'wp-editor')
-    );
+/**
+ * Main plugin class
+ */
+class ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_') : 'My_Custom_Plugin'} {
+    /**
+     * Plugin version
+     *
+     * @var string
+     */
+    const VERSION = '1.0.0';
 
-    // Register block
-    register_block_type('custom/block', array(
-        'editor_script' => 'custom-block-editor',
-    ));
+    /**
+     * Plugin singleton instance
+     *
+     * @var ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_') : 'My_Custom_Plugin'}
+     */
+    private static $instance = null;
+
+    /**
+     * Plugin constructor
+     */
+    private function __construct() {
+        // Define constants
+        $this->define_constants();
+
+        // Initialize hooks
+        $this->init_hooks();
+
+        // Load textdomain
+        add_action('plugins_loaded', array($this, 'load_textdomain'));
+    }
+
+    /**
+     * Get plugin singleton instance
+     *
+     * @return ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_') : 'My_Custom_Plugin'} The plugin singleton instance
+     */
+    public static function instance() {
+        if (is_null(self::$instance)) {
+            self::$instance = new self();
+        }
+
+        return self::$instance;
+    }
+
+    /**
+     * Define plugin constants
+     */
+    private function define_constants() {
+        define('${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_VERSION', self::VERSION);
+        define('${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_FILE', __FILE__);
+        define('${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_PATH', plugin_dir_path(__FILE__));
+        define('${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_URL', plugin_dir_url(__FILE__));
+        define('${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_BASENAME', plugin_basename(__FILE__));
+    }
+
+    /**
+     * Initialize plugin hooks
+     */
+    private function init_hooks() {
+        // Register activation and deactivation hooks
+        register_activation_hook(__FILE__, array($this, 'activate'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+
+        // Enqueue scripts and styles
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
+
+        // Add settings link to plugins page
+        add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'add_plugin_action_links'));
+
+        // Register shortcode
+        add_shortcode('${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}', array($this, 'shortcode_callback'));
+
+        // Add admin menu
+        add_action('admin_menu', array($this, 'add_admin_menu'));
+
+        // Register settings
+        add_action('admin_init', array($this, 'register_settings'));
+    }
+
+    /**
+     * Load plugin textdomain
+     */
+    public function load_textdomain() {
+        load_plugin_textdomain(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}',
+            false,
+            dirname(plugin_basename(__FILE__)) . '/languages'
+        );
+    }
+
+    /**
+     * Plugin activation hook
+     */
+    public function activate() {
+        // Create database tables if needed
+        // $this->create_tables();
+
+        // Add capabilities
+        // $this->add_capabilities();
+
+        // Flush rewrite rules
+        flush_rewrite_rules();
+    }
+
+    /**
+     * Plugin deactivation hook
+     */
+    public function deactivate() {
+        // Flush rewrite rules
+        flush_rewrite_rules();
+    }
+
+    /**
+     * Enqueue frontend scripts and styles
+     */
+    public function enqueue_scripts() {
+        // Enqueue CSS
+        wp_enqueue_style(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}-style',
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_URL . 'assets/css/style.css',
+            array(),
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_VERSION
+        );
+
+        // Enqueue JS
+        wp_enqueue_script(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}-script',
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_URL . 'assets/js/script.js',
+            array('jquery'),
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_VERSION,
+            true
+        );
+
+        // Localize script
+        wp_localize_script(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}-script',
+            '${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() : 'my_custom_plugin'}_params',
+            array(
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_nonce'),
+            )
+        );
+    }
+
+    /**
+     * Enqueue admin scripts and styles
+     */
+    public function admin_enqueue_scripts($hook) {
+        // Only load on plugin admin pages
+        if (strpos($hook, '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}') === false) {
+            return;
+        }
+
+        // Enqueue admin CSS
+        wp_enqueue_style(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}-admin-style',
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_URL . 'assets/css/admin.css',
+            array(),
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_VERSION
+        );
+
+        // Enqueue admin JS
+        wp_enqueue_script(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}-admin-script',
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_URL . 'assets/js/admin.js',
+            array('jquery'),
+            ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_VERSION,
+            true
+        );
+    }
+
+    /**
+     * Add plugin action links
+     *
+     * @param array $links Plugin action links
+     * @return array Modified plugin action links
+     */
+    public function add_plugin_action_links($links) {
+        $plugin_links = array(
+            '<a href="' . admin_url('admin.php?page=${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_settings') . '">' . __('Settings', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}') . '</a>',
+        );
+
+        return array_merge($plugin_links, $links);
+    }
+
+    /**
+     * Shortcode callback
+     *
+     * @param array $atts Shortcode attributes
+     * @param string $content Shortcode content
+     * @return string Shortcode output
+     */
+    public function shortcode_callback($atts, $content = null) {
+        // Parse shortcode attributes
+        $atts = shortcode_atts(
+            array(
+                'title' => __('Default Title', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}'),
+                'class' => '',
+            ),
+            $atts,
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}'
+        );
+
+        // Start output buffering
+        ob_start();
+
+        // Include template
+        include ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_PATH . 'templates/shortcode-template.php';
+
+        // Return buffered content
+        return ob_get_clean();
+    }
+
+    /**
+     * Add admin menu
+     */
+    public function add_admin_menu() {
+        add_menu_page(
+            __('${pluginName || 'My Custom Plugin'}', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}'),
+            __('${pluginName || 'My Custom Plugin'}', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}'),
+            'manage_options',
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}',
+            array($this, 'admin_page_display'),
+            'dashicons-admin-plugins',
+            30
+        );
+
+        add_submenu_page(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}',
+            __('Settings', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}'),
+            __('Settings', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}'),
+            'manage_options',
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_settings',
+            array($this, 'settings_page_display')
+        );
+    }
+
+    /**
+     * Admin page display
+     */
+    public function admin_page_display() {
+        include ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_PATH . 'templates/admin-page.php';
+    }
+
+    /**
+     * Settings page display
+     */
+    public function settings_page_display() {
+        include ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase() : 'MY_CUSTOM_PLUGIN'}_PATH . 'templates/settings-page.php';
+    }
+
+    /**
+     * Register plugin settings
+     */
+    public function register_settings() {
+        register_setting(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_settings',
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_options'
+        );
+
+        add_settings_section(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_general_section',
+            __('General Settings', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}'),
+            array($this, 'general_section_callback'),
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_settings'
+        );
+
+        add_settings_field(
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_field_example',
+            __('Example Field', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}'),
+            array($this, 'example_field_callback'),
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_settings',
+            '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_general_section'
+        );
+    }
+
+    /**
+     * General section callback
+     */
+    public function general_section_callback() {
+        echo '<p>' . __('Configure the general settings for the plugin.', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}') . '</p>';
+    }
+
+    /**
+     * Example field callback
+     */
+    public function example_field_callback() {
+        $options = get_option('${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_options');
+        $value = isset($options['example_field']) ? $options['example_field'] : '';
+
+        echo '<input type="text" id="${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_field_example" name="${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}_options[example_field]" value="' . esc_attr($value) . '" class="regular-text">';
+        echo '<p class="description">' . __('This is an example field description.', '${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}') . '</p>';
+    }
 }
-add_action('init', 'register_custom_block');`)
+
+/**
+ * Initialize the plugin
+ *
+ * @return ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_') : 'My_Custom_Plugin'} The plugin instance
+ */
+function ${pluginName ? pluginName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_') : 'my_custom_plugin'}() {
+    return ${pluginName ? pluginName.replace(/[^a-zA-Z0-9]/g, '_') : 'My_Custom_Plugin'}::instance();
+}
+
+// Start the plugin
+${pluginName ? pluginName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_') : 'my_custom_plugin'}();`)
+
+  // Pre-populate instructions with comprehensive plugin documentation
+  const [instructions, setInstructions] = useState(`# ${pluginName || 'My Custom Plugin'} - WordPress Plugin
+
+## Installation
+
+1. Download the plugin zip file.
+2. Log in to your WordPress admin panel.
+3. Go to Plugins > Add New.
+4. Click the "Upload Plugin" button at the top of the page.
+5. Select the plugin zip file and click "Install Now".
+6. After installation is complete, click "Activate Plugin".
+
+## Features
+
+- **Admin Dashboard**: Dedicated admin interface for managing plugin settings
+- **Shortcode Support**: Use the \`[${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}]\` shortcode to display content on any page or post
+- **Widget Support**: Drag and drop widget for easy sidebar integration
+- **Customization Options**: Extensive settings to customize the plugin's appearance and behavior
+- **Responsive Design**: Works seamlessly on all devices and screen sizes
+- **Translation Ready**: Fully translatable with .pot file included
+
+## Usage
+
+### Basic Usage
+
+After activating the plugin, you can use the shortcode \`[${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}]\` in any post or page to display the plugin's content.
+
+### Shortcode Parameters
+
+The shortcode accepts the following parameters:
+
+- **title**: Set a custom title (default: "Default Title")
+- **class**: Add custom CSS classes to the container
+
+Example:
+\`\`\`
+[${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'} title="My Custom Title" class="custom-class"]
+\`\`\`
+
+### Admin Settings
+
+1. Navigate to ${pluginName || 'My Custom Plugin'} > Settings in your WordPress admin menu.
+2. Configure the plugin settings according to your preferences.
+3. Click "Save Changes" to apply your settings.
+
+## Customization
+
+### CSS Customization
+
+You can add custom CSS to style the plugin output. Add your custom styles to your theme's stylesheet or use a custom CSS plugin.
+
+Example CSS:
+\`\`\`css
+.${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}-container {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}-title {
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+\`\`\`
+
+### Template Customization
+
+Advanced users can override the plugin templates by copying them to their theme:
+
+1. Create a folder named \`${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}\` in your theme directory.
+2. Copy the template files from the plugin's \`templates\` directory to your theme's \`${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'my-custom-plugin'}\` directory.
+3. Modify the templates as needed.
+
+## Frequently Asked Questions
+
+### How do I display the plugin content in a specific location?
+
+Use the \`[${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}]\` shortcode in any post or page where you want the content to appear.
+
+### Can I use the plugin with page builders?
+
+Yes, the plugin is compatible with popular page builders like Elementor, Beaver Builder, and Divi.
+
+### Is the plugin compatible with WPML/Polylang?
+
+Yes, the plugin is translation-ready and compatible with multilingual plugins.
+
+## Troubleshooting
+
+### The plugin styles are not loading
+
+1. Check if your theme is properly enqueuing styles.
+2. Verify that the plugin's CSS file is accessible.
+3. Clear your browser cache and any caching plugins.
+
+### The shortcode is not working
+
+1. Make sure you're using the correct shortcode syntax: \`[${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'my_custom_plugin'}]\`.
+2. Check if the plugin is properly activated.
+3. Verify that your post or page content is not being filtered by another plugin.
+
+## Support
+
+For support, please contact us through our support portal or email us at support@example.com.
+
+## Changelog
+
+### 1.0.0
+- Initial release`)
+
   const [copied, setCopied] = useState(false)
   const [formatting, setFormatting] = useState(false)
   const [previewMode, setPreviewMode] = useState('desktop')
@@ -352,6 +762,50 @@ add_action('init', 'register_custom_block');`)
     return null;
   };
   
+  // Extract instructions from a message
+  const extractInstructionsFromMessage = (message: string): string | null => {
+    // Look for sections that might contain instructions
+    const instructionSections = [
+      // Look for "## Installation" or "# Installation" sections
+      message.match(/#{1,2}\s*Installation\s*\n([\s\S]*?)(?=#{1,2}|$)/),
+      // Look for "## Usage" or "# Usage" sections
+      message.match(/#{1,2}\s*Usage\s*\n([\s\S]*?)(?=#{1,2}|$)/),
+      // Look for "## Instructions" or "# Instructions" sections
+      message.match(/#{1,2}\s*Instructions\s*\n([\s\S]*?)(?=#{1,2}|$)/),
+      // Look for "## How to use" or "# How to use" sections
+      message.match(/#{1,2}\s*How to use\s*\n([\s\S]*?)(?=#{1,2}|$)/),
+      // Look for "## Setup" or "# Setup" sections
+      message.match(/#{1,2}\s*Setup\s*\n([\s\S]*?)(?=#{1,2}|$)/)
+    ];
+    
+    // Combine all found instruction sections
+    let extractedInstructions = '';
+    instructionSections.forEach(match => {
+      if (match && match[0]) {
+        extractedInstructions += match[0] + '\n\n';
+      }
+    });
+    
+    // If no specific sections were found, look for paragraphs that might contain instructions
+    if (!extractedInstructions) {
+      // Look for paragraphs containing keywords like "install", "use", "setup", etc.
+      const instructionKeywords = ['install', 'setup', 'configure', 'use', 'activate', 'add to', 'settings'];
+      
+      const paragraphs = message.split('\n\n');
+      paragraphs.forEach(paragraph => {
+        const containsInstructionKeyword = instructionKeywords.some(keyword => 
+          paragraph.toLowerCase().includes(keyword)
+        );
+        
+        if (containsInstructionKeyword && !paragraph.includes('```')) {
+          extractedInstructions += paragraph + '\n\n';
+        }
+      });
+    }
+    
+    return extractedInstructions.trim() || null;
+  };
+  
   // Format and transfer code to the code editor
   const formatAndTransferCode = async (extractedCode: string) => {
     try {
@@ -408,6 +862,25 @@ add_action('init', 'register_custom_block');`)
       return response;
     }
     
+    // Extract code from the response
+    const extractedCode = extractCodeFromMessage(response);
+    if (extractedCode) {
+      // Automatically transfer code to the code editor
+      formatAndTransferCode(extractedCode);
+    }
+    
+    // Extract instructions from the response
+    const extractedInstructions = extractInstructionsFromMessage(response);
+    if (extractedInstructions) {
+      // Update instructions
+      setInstructions(prev => {
+        if (prev) {
+          return prev + '\n\n' + extractedInstructions;
+        }
+        return extractedInstructions;
+      });
+    }
+    
     // Replace code blocks with a note
     let processedResponse = response.replace(/```[\w]*\s*([\s\S]*?)\s*```/g, 
       '```\n[Code has been transferred to the Code tab]\n```');
@@ -419,6 +892,11 @@ add_action('init', 'register_custom_block');`)
     // Add a note at the end if it's not already there
     if (!processedResponse.includes('transferred to the Code tab')) {
       processedResponse += '\n\n**Note:** All code has been transferred to the Code tab.';
+    }
+    
+    // If instructions were found, add a note about them
+    if (extractedInstructions && !processedResponse.includes('Instructions have been added')) {
+      processedResponse += '\n\n**Note:** Installation and usage instructions have been added to the Instructions tab.';
     }
     
     return processedResponse;
@@ -447,10 +925,7 @@ add_action('init', 'register_custom_block');`)
       // Send message to AI
       const response = await sendMessage(activeAI, newMessages);
       
-      // Extract code from response before processing
-      const extractedCode = extractCodeFromMessage(response);
-      
-      // Process response to remove code blocks
+      // Process response to remove code blocks and extract content
       const processedResponse = processAIResponse(response);
       
       // Add AI response to chat
@@ -458,11 +933,6 @@ add_action('init', 'register_custom_block');`)
         ...newMessages,
         { role: 'assistant', content: processedResponse }
       ]);
-      
-      // If code was found, transfer it to the code editor
-      if (extractedCode) {
-        await formatAndTransferCode(extractedCode);
-      }
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -497,6 +967,28 @@ add_action('init', 'register_custom_block');`)
       '$ Transfer code from message',
       'No code found in the selected message.'
     ]);
+    
+    return false;
+  };
+  
+  // Handle transferring instructions from a specific message
+  const handleTransferInstructionsFromMessage = (messageContent: string) => {
+    const extractedInstructions = extractInstructionsFromMessage(messageContent);
+    
+    if (extractedInstructions) {
+      setInstructions(prev => {
+        // If there are already instructions, append the new ones
+        if (prev) {
+          return prev + '\n\n' + extractedInstructions;
+        }
+        return extractedInstructions;
+      });
+      
+      // Switch to instructions tab
+      setActiveTab('instructions');
+      
+      return true;
+    }
     
     return false;
   };
@@ -593,6 +1085,28 @@ add_action('init', 'register_custom_block');`)
             'No AI messages found to extract code from.'
           ]);
         }
+      } else if (command === 'extract-instructions' || command === 'get-instructions') {
+        // Extract instructions from the last AI message
+        const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
+        if (lastAiMessage) {
+          const success = handleTransferInstructionsFromMessage(lastAiMessage.content);
+          if (success) {
+            setTerminalOutput(prev => [
+              ...prev,
+              'Instructions extracted and transferred to the Instructions tab.'
+            ]);
+          } else {
+            setTerminalOutput(prev => [
+              ...prev,
+              'No instructions found in the last AI message.'
+            ]);
+          }
+        } else {
+          setTerminalOutput(prev => [
+            ...prev,
+            'No AI messages found to extract instructions from.'
+          ]);
+        }
       } else if (command === 'show-code') {
         // Log current code to terminal
         setTerminalOutput(prev => [
@@ -600,6 +1114,15 @@ add_action('init', 'register_custom_block');`)
           'Current code in editor:',
           '---',
           code,
+          '---'
+        ]);
+      } else if (command === 'show-instructions') {
+        // Log current instructions to terminal
+        setTerminalOutput(prev => [
+          ...prev,
+          'Current instructions:',
+          '---',
+          instructions || 'No instructions available.',
           '---'
         ]);
       } else if (command === 'execute' || command === 'run') {
@@ -625,7 +1148,9 @@ add_action('init', 'register_custom_block');`)
           '  zip <filename>         - Create zip archive',
           '  clear, cls             - Clear terminal',
           '  extract-code, get-code - Extract code from AI message',
+          '  extract-instructions   - Extract instructions from AI message',
           '  show-code              - Show current code',
+          '  show-instructions      - Show current instructions',
           '  execute, run           - Execute plugin',
           '  build                  - Build plugin',
           '  save                   - Save plugin',
@@ -640,11 +1165,19 @@ add_action('init', 'register_custom_block');`)
           `├── ${pluginName || 'my-custom-plugin'}.php`,
           '├── assets/',
           '│   ├── css/',
-          '│   │   └── style.css',
+          '│   │   ├── style.css',
+          '│   │   └── admin.css',
           '│   └── js/',
-          '│       └── script.js',
+          '│       ├── script.js',
+          '│       └── admin.js',
           '├── includes/',
           '│   └── functions.php',
+          '├── templates/',
+          '│   ├── admin-page.php',
+          '│   ├── settings-page.php',
+          '│   └── shortcode-template.php',
+          '├── languages/',
+          '│   └── plugin-text-domain.pot',
           '└── readme.txt'
         ]);
       } else if (command === 'cat' && command.includes('.php')) {
@@ -831,6 +1364,12 @@ add_action('init', 'register_custom_block');`)
           ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/js/` 
           : '',
         result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/templates/` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/languages/` 
+          : '',
+        result.success 
           ? `Successfully created ${result.filename}` 
           : ''
       ]);
@@ -904,6 +1443,15 @@ add_action('init', 'register_custom_block');`)
         `Plugin Name: ${pluginName || 'My Custom Plugin'}`
       );
       setCode(updatedCode);
+      
+      // Also update instructions with the new plugin name
+      if (instructions.includes('# ')) {
+        const updatedInstructions = instructions.replace(
+          /# .*? - WordPress Plugin/,
+          `# ${pluginName || 'My Custom Plugin'} - WordPress Plugin`
+        );
+        setInstructions(updatedInstructions);
+      }
     }
   }, [pluginName]);
   
@@ -1035,6 +1583,13 @@ add_action('init', 'register_custom_block');`)
                     <span>Code</span>
                   </button>
                   <button 
+                    className={`workspace-tab ${activeTab === 'instructions' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('instructions')}
+                  >
+                    <FiBook />
+                    <span>Instructions</span>
+                  </button>
+                  <button 
                     className={`workspace-tab ${activeTab === 'terminal' ? 'active' : ''}`}
                     onClick={() => setActiveTab('terminal')}
                   >
@@ -1057,21 +1612,40 @@ add_action('init', 'register_custom_block');`)
                             </div>
                             <div className="message-content">
                               <div dangerouslySetInnerHTML={{ __html: message.content.replace(/```([\s\S]*?)```/g, (match, code) => {
-                                return `<pre style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">${code}</pre>`;
+                                return `<pre style="background-color: #1e1e1e; padding: 10px; border-radius: 4px; overflow-x: auto; color: #d4d4d4;">${code}</pre>`;
                               })}} />
-                              {message.role === 'assistant' && extractCodeFromMessage(message.content) && (
-                                <button 
-                                  className="code-action" 
-                                  style={{ 
-                                    marginTop: '10px', 
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px'
-                                  }}
-                                  onClick={() => handleTransferCodeFromMessage(message.content)}
-                                >
-                                  <FiCode /> Use this code
-                                </button>
+                              {message.role === 'assistant' && (
+                                <div className="message-actions" style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                                  {extractCodeFromMessage(message.content) && (
+                                    <button 
+                                      className="code-action" 
+                                      style={{ 
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px'
+                                      }}
+                                      onClick={() => handleTransferCodeFromMessage(message.content)}
+                                    >
+                                      <FiCode /> Use this code
+                                    </button>
+                                  )}
+                                  {extractInstructionsFromMessage(message.content) && (
+                                    <button 
+                                      className="code-action" 
+                                      style={{ 
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px'
+                                      }}
+                                      onClick={() => {
+                                        handleTransferInstructionsFromMessage(message.content);
+                                        setActiveTab('instructions');
+                                      }}
+                                    >
+                                      <FiBook /> View instructions
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1159,6 +1733,32 @@ add_action('init', 'register_custom_block');`)
                         >
                           <FiSave /> Save
                         </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {activeTab === 'instructions' && (
+                    <div className="instructions-panel">
+                      <div className="instructions-content">
+                        {instructions ? (
+                          <div dangerouslySetInnerHTML={{ __html: instructions.replace(/\n/g, '<br>').replace(/#{1,6}\s+(.*?)$/gm, '<h3>$1</h3>') }} />
+                        ) : (
+                          <div className="no-instructions">
+                            <p>No instructions available yet. Ask the AI about how to use the plugin to generate instructions.</p>
+                            <button 
+                              className="code-action"
+                              onClick={() => {
+                                setUserMessage("Can you provide detailed instructions on how to install and use this plugin?");
+                                setActiveTab('chat');
+                                setTimeout(() => {
+                                  handleSendMessage();
+                                }, 100);
+                              }}
+                            >
+                              Ask for instructions
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

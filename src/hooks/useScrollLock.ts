@@ -1,49 +1,40 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 
 /**
- * Custom hook to temporarily lock scroll position during specific actions
+ * Hook to lock and unlock scroll position
  */
 export const useScrollLock = () => {
-  const lockScroll = () => {
-    // Store current scroll position
-    const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-    
-    // Create a style element to prevent scrolling
-    const styleElement = document.createElement('style');
-    styleElement.id = 'scroll-lock-style';
-    styleElement.innerHTML = `
-      body {
-        overflow: hidden !important;
-        position: fixed !important;
-        width: 100% !important;
-        top: -${scrollPosition}px !important;
-        height: 100% !important;
-      }
-    `;
-    document.head.appendChild(styleElement);
-    
-    // Store the scroll position as a data attribute
-    document.body.dataset.scrollPosition = scrollPosition.toString();
-  };
+  // Store original body style
+  let originalStyle: string;
   
-  const unlockScroll = () => {
-    // Remove the style element
-    const styleElement = document.getElementById('scroll-lock-style');
-    if (styleElement) {
-      document.head.removeChild(styleElement);
-    }
+  // Lock scroll
+  const lockScroll = useCallback(() => {
+    // Save current scroll position
+    const scrollY = window.scrollY;
+    
+    // Save original body style
+    originalStyle = document.body.style.cssText;
+    
+    // Lock the body at current scroll position
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflowY = 'scroll';
+  }, []);
+  
+  // Unlock scroll
+  const unlockScroll = useCallback(() => {
+    // Get the scroll position from body top property
+    const scrollY = document.body.style.top ? 
+      parseInt(document.body.style.top || '0', 10) * -1 : 
+      0;
+    
+    // Restore original body style
+    document.body.style.cssText = originalStyle;
     
     // Restore scroll position
-    const scrollPosition = parseInt(document.body.dataset.scrollPosition || '0', 10);
-    document.body.style.removeProperty('overflow');
-    document.body.style.removeProperty('position');
-    document.body.style.removeProperty('width');
-    document.body.style.removeProperty('top');
-    document.body.style.removeProperty('height');
-    
-    // Scroll to the stored position
-    window.scrollTo(0, scrollPosition);
-  };
+    window.scrollTo(0, scrollY);
+  }, []);
   
   return { lockScroll, unlockScroll };
 };
