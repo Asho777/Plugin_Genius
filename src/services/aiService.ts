@@ -15,6 +15,13 @@ export interface AIModel {
 
 export const AI_MODELS: AIModel[] = [
   {
+    id: 'xbesh',
+    name: 'xBesh AI',
+    apiEndpoint: 'https://api.xbesh.ai/v1/chat/completions',
+    requiresApiKey: true,
+    systemPrompt: 'You are a WordPress plugin development expert. Help the user create high-quality, secure, and efficient WordPress plugins. Provide code examples, best practices, and explain WordPress-specific concepts when needed.'
+  },
+  {
     id: 'gpt-4',
     name: 'GPT-4',
     apiEndpoint: 'https://api.openai.com/v1/chat/completions',
@@ -109,6 +116,39 @@ export const saveApiKey = async (modelId: string, apiKey: string): Promise<boole
       });
     
     return !error;
+  }
+};
+
+// Send message to xBesh AI
+const sendToXBesh = async (messages: Message[], apiKey: string): Promise<string> => {
+  try {
+    console.log('Sending request to xBesh AI');
+    
+    const response = await fetch('https://api.xbesh.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'xbesh-1',
+        messages,
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('xBesh AI API error response:', errorData);
+      throw new Error(errorData.error?.message || `Error communicating with xBesh AI: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('xBesh AI API error:', error);
+    throw error;
   }
 };
 
@@ -315,6 +355,8 @@ export const sendMessage = async (modelId: string, messages: Message[]): Promise
   console.log(`Sending message to model: ${modelId}`);
   
   switch (modelId) {
+    case 'xbesh':
+      return sendToXBesh(messages, apiKey);
     case 'gpt-4':
       return sendToOpenAI(messages, apiKey, 'gpt-4');
     case 'gpt-4o':

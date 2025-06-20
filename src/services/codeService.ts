@@ -1,202 +1,129 @@
-/**
- * Code formatting service
- */
+import { js_beautify, html_beautify } from 'js-beautify';
 
 /**
- * Format PHP code with proper indentation and spacing
+ * Format PHP code using js-beautify
  * 
  * @param code The PHP code to format
  * @returns Formatted PHP code
  */
-export const formatCode = (code: string): string => {
-  try {
-    // Simple PHP code formatter
-    // This is a basic implementation and doesn't handle all PHP syntax cases
-    
-    // Normalize line endings
-    let formattedCode = code.replace(/\r\n/g, '\n');
-    
-    // Ensure consistent spacing around operators
-    formattedCode = formattedCode
-      .replace(/\s*([=+\-*/%&|<>!?:]+)\s*/g, ' $1 ')
-      .replace(/\s*,\s*/g, ', ')
-      .replace(/\s*;\s*/g, '; ')
-      .replace(/\(\s+/g, '(')
-      .replace(/\s+\)/g, ')')
-      .replace(/\{\s+/g, '{ ')
-      .replace(/\s+\}/g, ' }');
-    
-    // Split into lines for indentation processing
-    const lines = formattedCode.split('\n');
-    let indentLevel = 0;
-    const indentSize = 4; // 4 spaces per indent level
-    
-    // Process each line for proper indentation
-    const processedLines = lines.map(line => {
-      // Trim whitespace
-      const trimmedLine = line.trim();
-      
-      // Skip empty lines
-      if (!trimmedLine) {
-        return '';
-      }
-      
-      // Decrease indent for closing braces/tags
-      if (trimmedLine.startsWith('}') || trimmedLine.startsWith(')') || trimmedLine === '?>') {
-        indentLevel = Math.max(0, indentLevel - 1);
-      }
-      
-      // Calculate current line indent
-      const indent = ' '.repeat(indentLevel * indentSize);
-      
-      // Add indent to the line
-      const indentedLine = indent + trimmedLine;
-      
-      // Increase indent for opening braces/tags
-      if (
-        trimmedLine.endsWith('{') || 
-        trimmedLine.endsWith('(') || 
-        trimmedLine === '<?php' ||
-        trimmedLine.includes('{') && !trimmedLine.includes('}') ||
-        trimmedLine.endsWith(':') // For alternative syntax like if (...):
-      ) {
-        indentLevel++;
-      }
-      
-      return indentedLine;
-    });
-    
-    // Join lines back together
-    return processedLines.join('\n');
-  } catch (error) {
-    console.error('Error formatting code:', error);
-    // Return original code if formatting fails
+export const formatPhpCode = (code: string): string => {
+  // Check if code is empty
+  if (!code.trim()) {
     return code;
   }
-}
 
-/**
- * Format JavaScript/TypeScript code
- * 
- * @param code The JS/TS code to format
- * @returns Formatted JS/TS code
- */
-export const formatJsCode = (code: string): string => {
   try {
-    // Simple JS code formatter (similar approach to PHP formatter)
-    
-    // Normalize line endings
-    let formattedCode = code.replace(/\r\n/g, '\n');
-    
-    // Ensure consistent spacing around operators
-    formattedCode = formattedCode
-      .replace(/\s*([=+\-*/%&|<>!?:]+)\s*/g, ' $1 ')
-      .replace(/\s*,\s*/g, ', ')
-      .replace(/\s*;\s*/g, '; ')
-      .replace(/\(\s+/g, '(')
-      .replace(/\s+\)/g, ')')
-      .replace(/\{\s+/g, '{ ')
-      .replace(/\s+\}/g, ' }');
-    
-    // Split into lines for indentation processing
-    const lines = formattedCode.split('\n');
-    let indentLevel = 0;
-    const indentSize = 2; // 2 spaces per indent level for JS
-    
-    // Process each line for proper indentation
-    const processedLines = lines.map(line => {
-      // Trim whitespace
-      const trimmedLine = line.trim();
-      
-      // Skip empty lines
-      if (!trimmedLine) {
-        return '';
-      }
-      
-      // Decrease indent for closing braces
-      if (trimmedLine.startsWith('}') || trimmedLine.startsWith(')')) {
-        indentLevel = Math.max(0, indentLevel - 1);
-      }
-      
-      // Calculate current line indent
-      const indent = ' '.repeat(indentLevel * indentSize);
-      
-      // Add indent to the line
-      const indentedLine = indent + trimmedLine;
-      
-      // Increase indent for opening braces
-      if (
-        trimmedLine.endsWith('{') || 
-        trimmedLine.endsWith('(') ||
-        trimmedLine.includes('{') && !trimmedLine.includes('}')
-      ) {
-        indentLevel++;
-      }
-      
-      return indentedLine;
-    });
-    
-    // Join lines back together
-    return processedLines.join('\n');
-  } catch (error) {
-    console.error('Error formatting JS code:', error);
-    // Return original code if formatting fails
-    return code;
-  }
-}
+    // PHP-specific formatting options
+    const options = {
+      indent_size: 4,
+      indent_with_tabs: false,
+      max_preserve_newlines: 2,
+      preserve_newlines: true,
+      keep_array_indentation: false,
+      break_chained_methods: false,
+      indent_scripts: "normal",
+      brace_style: "collapse",
+      space_before_conditional: true,
+      unescape_strings: false,
+      jslint_happy: false,
+      end_with_newline: true,
+      wrap_line_length: 0,
+      indent_inner_html: false,
+      comma_first: false,
+      e4x: false,
+      indent_empty_lines: false
+    };
 
-/**
- * Format CSS code
- * 
- * @param code The CSS code to format
- * @returns Formatted CSS code
- */
-export const formatCssCode = (code: string): string => {
-  try {
-    // Simple CSS code formatter
-    
-    // Normalize line endings
-    let formattedCode = code.replace(/\r\n/g, '\n');
-    
-    // Format CSS rules
+    // For PHP, we use html_beautify since it handles PHP tags better
+    // But we need to handle PHP-specific formatting
+    let formattedCode = html_beautify(code, options);
+
+    // Additional PHP-specific formatting
+    // Fix spacing around PHP operators
     formattedCode = formattedCode
-      .replace(/\s*{\s*/g, ' {\n    ')
-      .replace(/;\s*/g, ';\n    ')
-      .replace(/\s*}\s*/g, '\n}\n\n')
-      .replace(/\n    \n/g, '\n');
-    
-    // Clean up extra newlines
-    formattedCode = formattedCode
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-    
+      // Fix spacing around operators
+      .replace(/\s*\+=\s*/g, ' += ')
+      .replace(/\s*-=\s*/g, ' -= ')
+      .replace(/\s*\*=\s*/g, ' *= ')
+      .replace(/\s*\/=\s*/g, ' /= ')
+      .replace(/\s*%=\s*/g, ' %= ')
+      .replace(/\s*=\s*/g, ' = ')
+      .replace(/\s*==\s*/g, ' == ')
+      .replace(/\s*!=\s*/g, ' != ')
+      .replace(/\s*===\s*/g, ' === ')
+      .replace(/\s*!==\s*/g, ' !== ')
+      .replace(/\s*<\s*/g, ' < ')
+      .replace(/\s*>\s*/g, ' > ')
+      .replace(/\s*<=\s*/g, ' <= ')
+      .replace(/\s*>=\s*/g, ' >= ')
+      .replace(/\s*\+\s*/g, ' + ')
+      .replace(/\s*-\s*/g, ' - ')
+      .replace(/\s*\*\s*/g, ' * ')
+      .replace(/\s*\/\s*/g, ' / ')
+      .replace(/\s*%\s*/g, ' % ')
+      // Fix spacing around PHP arrows
+      .replace(/\s*->\s*/g, '->');
+
     return formattedCode;
   } catch (error) {
-    console.error('Error formatting CSS code:', error);
-    // Return original code if formatting fails
-    return code;
+    console.error('Error formatting PHP code:', error);
+    return code; // Return original code if formatting fails
   }
-}
+};
 
 /**
- * Detect code language and format accordingly
+ * Format JavaScript code using js-beautify
+ * 
+ * @param code The JavaScript code to format
+ * @returns Formatted JavaScript code
+ */
+export const formatJsCode = (code: string): string => {
+  if (!code.trim()) {
+    return code;
+  }
+
+  try {
+    return js_beautify(code, {
+      indent_size: 2,
+      indent_with_tabs: false,
+      max_preserve_newlines: 2,
+      preserve_newlines: true,
+      keep_array_indentation: false,
+      break_chained_methods: false,
+      indent_scripts: "normal",
+      brace_style: "collapse",
+      space_before_conditional: true,
+      unescape_strings: false,
+      jslint_happy: false,
+      end_with_newline: true,
+      wrap_line_length: 0,
+      indent_inner_html: false,
+      comma_first: false,
+      e4x: false,
+      indent_empty_lines: false
+    });
+  } catch (error) {
+    console.error('Error formatting JavaScript code:', error);
+    return code;
+  }
+};
+
+/**
+ * Format code based on detected language
  * 
  * @param code The code to format
  * @returns Formatted code
  */
-export const detectAndFormatCode = (code: string): string => {
-  // Check for PHP
+export const formatCode = (code: string): string => {
+  if (!code.trim()) {
+    return code;
+  }
+
+  // Detect if code is PHP
   if (code.includes('<?php') || code.includes('?>')) {
-    return formatCode(code);
+    return formatPhpCode(code);
   }
   
-  // Check for CSS
-  if (code.includes('{') && code.includes('}') && 
-      (code.includes('margin:') || code.includes('padding:') || 
-       code.includes('color:') || code.includes('background:'))) {
-    return formatCssCode(code);
-  }
-  
-  // Default to JS/TS
+  // Default to JavaScript formatting
   return formatJsCode(code);
-}
+};
