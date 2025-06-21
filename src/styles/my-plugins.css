@@ -197,6 +197,13 @@
   color: var(--color-white);
 }
 
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  color: var(--color-light-gray);
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
   .my-plugins-header {

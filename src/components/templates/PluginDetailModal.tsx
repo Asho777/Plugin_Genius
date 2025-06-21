@@ -13,12 +13,22 @@ interface PluginDetailModalProps {
 const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }) => {
   const navigate = useNavigate()
   const [isSaved, setIsSaved] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   
   // Check if plugin is saved on component mount
   useEffect(() => {
-    const savedPlugins = getSavedPlugins()
-    const pluginIsSaved = savedPlugins.some(p => p.id === plugin.id)
-    setIsSaved(pluginIsSaved)
+    const checkIfSaved = async () => {
+      try {
+        const savedPlugins = await getSavedPlugins()
+        const pluginIsSaved = Array.isArray(savedPlugins) && savedPlugins.some(p => p.id === plugin.id)
+        setIsSaved(pluginIsSaved)
+      } catch (error) {
+        console.error('Error checking if plugin is saved:', error)
+        setIsSaved(false)
+      }
+    }
+    
+    checkIfSaved()
   }, [plugin.id])
   
   const formatDate = (dateString: string) => {
@@ -67,17 +77,29 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
     window.open(plugin.detailUrl, '_blank')
   }
   
-  const handleAddToMyPlugins = (e: React.MouseEvent) => {
+  const handleAddToMyPlugins = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    if (!isSaved) {
-      savePlugin(plugin)
-      setIsSaved(true)
+    if (!isSaved && !isProcessing) {
+      setIsProcessing(true)
+      try {
+        await savePlugin(plugin)
+        setIsSaved(true)
+        
+        // Navigate to the correct route after a short delay
+        setTimeout(() => {
+          navigate('/my-plugins')
+        }, 500)
+      } catch (error) {
+        console.error('Error saving plugin:', error)
+      } finally {
+        setIsProcessing(false)
+      }
+    } else if (isSaved) {
+      // If already saved, just navigate
+      navigate('/my-plugins')
     }
-    
-    // Navigate to the correct route
-    navigate('/my-plugins')
   }
   
   return (
@@ -132,6 +154,7 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
                   className="action-button secondary"
                   onClick={handleAddToMyPlugins}
                   type="button"
+                  disabled={isProcessing}
                 >
                   {isSaved ? (
                     <>
@@ -141,7 +164,7 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
                   ) : (
                     <>
                       <FiBookmark />
-                      <span>Add to My Plugins</span>
+                      <span>{isProcessing ? 'Adding...' : 'Add to My Plugins'}</span>
                     </>
                   )}
                 </button>

@@ -27,17 +27,17 @@ const CreatePluginPage = () => {
   // Use scroll lock hook
   const { lockScroll, unlockScroll } = useScrollLock();
   
-  const [activeAI, setActiveAI] = useState('gpt-4')
+  const [activeAI, setActiveAI] = useState('xbesh')
   const [pluginName, setPluginName] = useState('')
   const [activeTab, setActiveTab] = useState('chat')
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'system',
-      content: AI_MODELS.find(model => model.id === 'gpt-4')?.systemPrompt || ''
+      content: AI_MODELS.find(model => model.id === 'xbesh')?.systemPrompt || ''
     },
     {
       role: 'assistant',
-      content: 'Hello! I\'m your AI assistant. I\'ll help you create a WordPress plugin. What kind of functionality would you like to build?'
+      content: 'Hello! I\'m your xBesh AI assistant. I\'ll help you create a WordPress plugin. What kind of functionality would you like to build?'
     }
   ])
   const [userMessage, setUserMessage] = useState('')
@@ -922,7 +922,7 @@ add_action('init', 'register_custom_block');`)
             transition={{ duration: 0.5 }}
           >
             <h1 className="page-title">Create Your Custom Plugin</h1>
-            <p className="page-subtitle">Use AI to build powerful WordPress plugins without writing a single line of code</p>
+            <p className="page-subtitle">Use xBesh AI to build powerful WordPress plugins without writing a single line of code</p>
             
             <div className="plugin-name-container">
               <input 
@@ -941,7 +941,7 @@ add_action('init', 'register_custom_block');`)
             <div className="ai-selector">
               <div className="ai-selector-label">AI Model:</div>
               <div className="ai-options" ref={aiOptionsRef}>
-                {AI_MODELS.map(ai => (
+                {AI_MODELS.filter(ai => ai.id === 'xbesh').map(ai => (
                   <div 
                     key={ai.id}
                     className={`ai-option ${activeAI === ai.id ? 'active' : ''}`}
@@ -993,7 +993,7 @@ add_action('init', 'register_custom_block');`)
             {apiKeyMissing && (
               <div className="api-key-warning">
                 <p>
-                  <strong>API Key Required:</strong> Please add your {AI_MODELS.find(model => model.id === activeAI)?.name} API key in settings to use this model.
+                  <strong>API Key Required:</strong> Please add your xBesh AI API key in settings to use this model.
                 </p>
                 <button 
                   className="api-key-button"

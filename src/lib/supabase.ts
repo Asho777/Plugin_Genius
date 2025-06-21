@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Default to a valid URL format if environment variables are not set
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://example.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

@@ -13,12 +13,24 @@ const MyPluginsPage = () => {
   const [plugins, setPlugins] = useState<Plugin[]>([])
   const [filteredPlugins, setFilteredPlugins] = useState<Plugin[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
   
   useEffect(() => {
-    // Load saved plugins from local storage
-    const savedPlugins = getSavedPlugins()
-    setPlugins(savedPlugins)
-    setFilteredPlugins(savedPlugins)
+    // Load saved plugins from database
+    const loadPlugins = async () => {
+      setIsLoading(true)
+      try {
+        const savedPlugins = await getSavedPlugins()
+        setPlugins(savedPlugins)
+        setFilteredPlugins(savedPlugins)
+      } catch (error) {
+        console.error('Error loading plugins:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadPlugins()
   }, [])
   
   useEffect(() => {
@@ -40,13 +52,18 @@ const MyPluginsPage = () => {
     setSearchTerm(e.target.value)
   }
   
-  const handleRemovePlugin = (pluginId: string) => {
-    // Remove plugin from local storage
-    removePlugin(pluginId)
-    
-    // Update state
-    const updatedPlugins = plugins.filter(plugin => plugin.id !== pluginId)
-    setPlugins(updatedPlugins)
+  const handleRemovePlugin = async (pluginId: string) => {
+    try {
+      // Remove plugin from database
+      await removePlugin(pluginId)
+      
+      // Update state
+      const updatedPlugins = plugins.filter(plugin => plugin.id !== pluginId)
+      setPlugins(updatedPlugins)
+      setFilteredPlugins(prevFiltered => prevFiltered.filter(plugin => plugin.id !== pluginId))
+    } catch (error) {
+      console.error('Error removing plugin:', error)
+    }
   }
 
   return (
@@ -106,7 +123,11 @@ const MyPluginsPage = () => {
         
         <section className="my-plugins-list">
           <div className="container">
-            {plugins.length === 0 ? (
+            {isLoading ? (
+              <div className="loading-state">
+                <p>Loading your plugins...</p>
+              </div>
+            ) : plugins.length === 0 ? (
               <motion.div 
                 className="empty-state"
                 initial={{ opacity: 0 }}
