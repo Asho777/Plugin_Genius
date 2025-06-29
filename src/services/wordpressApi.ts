@@ -105,8 +105,7 @@ export const fetchWordPressPlugins = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-        'User-Agent': 'Plugin-Genius/1.0'
+        'Accept': 'application/json'
       },
       body: new URLSearchParams({
         action: 'query_plugins',
