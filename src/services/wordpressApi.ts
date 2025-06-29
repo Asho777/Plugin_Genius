@@ -1,7 +1,17 @@
 import { Plugin } from '../pages/TemplatesPage'
 
-// WordPress.org REST API endpoint for plugins - using proxy to avoid CORS
-const WP_API_URL = '/api/wordpress/plugins/info/1.2/'
+// Interface for paginated plugin response
+export interface PaginatedPluginResponse {
+  plugins: Plugin[]
+  currentPage: number
+  totalPages: number
+  totalResults: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+// WordPress.org REST API endpoint for plugins - direct API call
+const WP_API_URL = 'https://api.wordpress.org/plugins/info/1.2/'
 
 // Interface for WordPress API response
 interface WordPressApiResponse {
@@ -50,11 +60,15 @@ const decodeHtmlEntities = (text: string): string => {
 }
 
 // Function to fetch WordPress plugins from the official API
-export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Plugin[]> => {
+export const fetchWordPressPlugins = async (
+  searchTerm: string = '', 
+  page: number = 1
+): Promise<PaginatedPluginResponse> => {
   try {
     // Create request parameters
     const requestObj: any = {
-      per_page: 48, // Request 48 plugins as specified
+      per_page: 24, // Request 24 plugins per page
+      page: page,
       fields: {
         description: true,
         sections: false,
@@ -85,17 +99,29 @@ export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Pl
       request: JSON.stringify(requestObj)
     })
 
-    // Make the API request
-    const response = await fetch(`${WP_API_URL}?${params.toString()}`)
+    // Make the API request with CORS mode
+    const response = await fetch(`${WP_API_URL}?${params.toString()}`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
     
     if (!response.ok) {
-      throw new Error(`WordPress API error: ${response.status}`)
+      throw new Error(`Unable to connect to WordPress API (Status: ${response.status}). This may be due to network restrictions or CORS policies.`)
+    }
+
+    // Check if the response is actually JSON
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('WordPress API returned non-JSON response. This may be due to network restrictions or server configuration.')
     }
 
     const data: WordPressApiResponse = await response.json()
     
     // Transform the WordPress API response to our Plugin interface
-    return data.plugins.map(plugin => {
+    const plugins = data.plugins.map(plugin => {
       // Get the icon URL (prefer 2x if available, fallback to 1x, then default)
       const iconUrl = plugin.icons['2x'] || plugin.icons['1x'] || plugin.icons.default
       
@@ -115,8 +141,26 @@ export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Pl
         detailUrl: `https://wordpress.org/plugins/${plugin.slug}/`
       }
     })
-  } catch (error) {
+
+    // Return paginated response
+    return {
+      plugins,
+      currentPage: data.info.page,
+      totalPages: data.info.pages,
+      totalResults: data.info.results,
+      hasNextPage: data.info.page < data.info.pages,
+      hasPrevPage: data.info.page > 1
+    }
+  } catch (error: any) {
     console.error('Error fetching WordPress plugins:', error)
-    throw error
+    
+    // Provide more specific error messages
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('Unable to connect to WordPress API. This may be due to network restrictions or CORS policies.')
+    } else if (error.message.includes('Unexpected token')) {
+      throw new Error('WordPress API returned invalid data. This may be due to network restrictions or server configuration.')
+    } else {
+      throw error
+    }
   }
 }
