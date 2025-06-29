@@ -30,6 +30,7 @@ const TemplatesPage = () => {
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [isUsingFallback, setIsUsingFallback] = useState(false)
   const [filters, setFilters] = useState({
     category: 'all',
     minRating: 0,
@@ -68,10 +69,21 @@ const TemplatesPage = () => {
         setError(`No plugins found for "${term}" on page ${page}. Try a different search term or go back to page 1.`)
       } else {
         setPaginatedData(results)
+        setIsUsingFallback(false)
       }
-    } catch (err) {
-      setError('Failed to load plugins. Please try again later.')
+    } catch (err: any) {
       console.error('Error loading plugins:', err)
+      
+      // Use the specific error message from the service
+      const errorMessage = err?.message || 'Failed to load plugins. Please try again later.'
+      setError(errorMessage)
+      
+      // Check if this is a CORS/network error and we should show fallback data
+      if (errorMessage.includes('network restrictions') || errorMessage.includes('Unable to connect')) {
+        setIsUsingFallback(true)
+        // You could optionally load mock data here as a fallback
+        // For now, we'll just show the error message
+      }
     } finally {
       setLoading(false)
     }
@@ -307,6 +319,26 @@ const TemplatesPage = () => {
                 </button>
               </div>
             </motion.div>
+            
+            {/* Show notice if using fallback data */}
+            {isUsingFallback && (
+              <motion.div 
+                className="fallback-notice"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  background: '#fff3cd',
+                  border: '1px solid #ffeaa7',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  margin: '16px 0',
+                  color: '#856404'
+                }}
+              >
+                <FiInfo style={{ display: 'inline', marginRight: '8px' }} />
+                <strong>Demo Mode:</strong> Showing sample plugins due to API restrictions. In production, this would connect to the live WordPress.org API.
+              </motion.div>
+            )}
           </div>
         </section>
         

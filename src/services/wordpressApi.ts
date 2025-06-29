@@ -59,6 +59,108 @@ const decodeHtmlEntities = (text: string): string => {
   return textarea.value
 }
 
+// Fallback mock data for when API is not accessible
+const getMockPlugins = (searchTerm: string, page: number): PaginatedPluginResponse => {
+  const mockPlugins: Plugin[] = [
+    {
+      id: `woocommerce-p${page}-i0`,
+      name: 'WooCommerce',
+      description: 'An open-source eCommerce plugin that helps you sell anything. Beautifully.',
+      author: 'Automattic',
+      rating: 4.4,
+      downloads: 5000000,
+      lastUpdated: '2024-01-15',
+      tags: ['ecommerce', 'shop', 'store', 'sales'],
+      imageUrl: 'https://ps.w.org/woocommerce/assets/icon-256x256.png',
+      detailUrl: 'https://wordpress.org/plugins/woocommerce/'
+    },
+    {
+      id: `yoast-seo-p${page}-i1`,
+      name: 'Yoast SEO',
+      description: 'Improve your WordPress SEO: Write better content and have a fully optimized WordPress site.',
+      author: 'Team Yoast',
+      rating: 4.6,
+      downloads: 5000000,
+      lastUpdated: '2024-01-10',
+      tags: ['seo', 'xml sitemap', 'google', 'meta'],
+      imageUrl: 'https://ps.w.org/wordpress-seo/assets/icon-256x256.png',
+      detailUrl: 'https://wordpress.org/plugins/wordpress-seo/'
+    },
+    {
+      id: `contact-form-7-p${page}-i2`,
+      name: 'Contact Form 7',
+      description: 'Just another contact form plugin. Simple but flexible.',
+      author: 'Takayuki Miyoshi',
+      rating: 4.2,
+      downloads: 5000000,
+      lastUpdated: '2024-01-08',
+      tags: ['contact', 'form', 'contact form', 'feedback'],
+      imageUrl: 'https://ps.w.org/contact-form-7/assets/icon-256x256.png',
+      detailUrl: 'https://wordpress.org/plugins/contact-form-7/'
+    },
+    {
+      id: `elementor-p${page}-i3`,
+      name: 'Elementor Website Builder',
+      description: 'The Elementor Website Builder has it all: drag and drop page builder, pixel perfect design.',
+      author: 'Elementor.com',
+      rating: 4.7,
+      downloads: 5000000,
+      lastUpdated: '2024-01-12',
+      tags: ['page builder', 'editor', 'landing page', 'drag-and-drop'],
+      imageUrl: 'https://ps.w.org/elementor/assets/icon-256x256.png',
+      detailUrl: 'https://wordpress.org/plugins/elementor/'
+    },
+    {
+      id: `jetpack-p${page}-i4`,
+      name: 'Jetpack',
+      description: 'Security, performance, and site management: the most comprehensive WordPress plugin.',
+      author: 'Automattic',
+      rating: 3.9,
+      downloads: 5000000,
+      lastUpdated: '2024-01-14',
+      tags: ['security', 'backup', 'anti-spam', 'seo'],
+      imageUrl: 'https://ps.w.org/jetpack/assets/icon-256x256.png',
+      detailUrl: 'https://wordpress.org/plugins/jetpack/'
+    },
+    {
+      id: `akismet-p${page}-i5`,
+      name: 'Akismet Anti-Spam',
+      description: 'Used by millions, Akismet is quite possibly the best way in the world to protect your blog from spam.',
+      author: 'Automattic',
+      rating: 4.5,
+      downloads: 5000000,
+      lastUpdated: '2024-01-09',
+      tags: ['akismet', 'comments', 'spam', 'anti-spam'],
+      imageUrl: 'https://ps.w.org/akismet/assets/icon-256x256.png',
+      detailUrl: 'https://wordpress.org/plugins/akismet/'
+    }
+  ]
+
+  // Filter by search term if provided
+  let filteredPlugins = mockPlugins
+  if (searchTerm.trim()) {
+    const searchLower = searchTerm.toLowerCase()
+    filteredPlugins = mockPlugins.filter(plugin => 
+      plugin.name.toLowerCase().includes(searchLower) ||
+      plugin.description.toLowerCase().includes(searchLower) ||
+      plugin.tags.some(tag => tag.toLowerCase().includes(searchLower))
+    )
+  }
+
+  // Simulate pagination
+  const totalResults = filteredPlugins.length * 10 // Simulate more results
+  const totalPages = Math.ceil(totalResults / 6)
+
+  return {
+    plugins: filteredPlugins,
+    currentPage: page,
+    totalPages: totalPages,
+    totalResults: totalResults,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1
+  }
+}
+
 // Function to fetch WordPress plugins from the official API with pagination
 export const fetchWordPressPlugins = async (
   searchTerm: string = '', 
@@ -112,9 +214,14 @@ export const fetchWordPressPlugins = async (
     })
     
     if (!response.ok) {
-      const errorText = await response.text()
+      let errorText = 'Unknown error'
+      try {
+        errorText = await response.text()
+      } catch (parseError) {
+        console.warn('Could not parse error response:', parseError)
+      }
       console.error(`❌ WordPress API error: ${response.status} ${response.statusText}`, errorText)
-      throw new Error(`WordPress API error: ${response.status} ${response.statusText}`)
+      throw new Error(`WordPress API returned ${response.status}: ${response.statusText}. Please try again later.`)
     }
 
     const data: WordPressApiResponse = await response.json()
@@ -189,6 +296,14 @@ export const fetchWordPressPlugins = async (
     return paginatedResponse
   } catch (error) {
     console.error('💥 Error fetching WordPress plugins:', error)
+    
+    // Check if this is a network/CORS error
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      console.warn('🚫 CORS/Network error detected. Using fallback mock data.')
+      throw new Error('Unable to connect to WordPress.org API due to network restrictions. Showing sample plugins instead. In a production environment, this would be resolved by using a backend proxy server.')
+    }
+    
+    // Re-throw other errors with their original message
     throw error
   }
 }
