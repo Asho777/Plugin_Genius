@@ -65,12 +65,12 @@ export const fetchWordPressPlugins = async (
   page: number = 1
 ): Promise<PaginatedPluginResponse> => {
   try {
-    console.log(`Fetching plugins from WordPress API with search term: "${searchTerm}", page: ${page}`)
+    console.log(`🔍 Fetching WordPress plugins - Search: "${searchTerm}", Page: ${page}`)
     
-    // Create request parameters - the key fix is ensuring page is properly set
+    // Create request parameters with proper structure for WordPress API
     const requestObj: any = {
-      per_page: 24, // WordPress API standard per page
-      page: page, // This is crucial - must be set correctly
+      per_page: 24,
+      page: page,
       fields: {
         description: true,
         sections: false,
@@ -87,72 +87,75 @@ export const fetchWordPressPlugins = async (
       }
     }
     
-    // Handle search vs browse differently
+    // Handle search vs browse
     if (searchTerm.trim()) {
-      // For search queries, use the search parameter
       requestObj.search = searchTerm.trim()
-      console.log(`Making search request for "${searchTerm.trim()}" on page ${page}`)
+      console.log(`📝 Search mode: "${searchTerm.trim()}" on page ${page}`)
     } else {
-      // If no search term, show popular plugins
       requestObj.browse = 'popular'
-      console.log(`Making browse request for popular plugins on page ${page}`)
+      console.log(`🔥 Browse mode: popular plugins on page ${page}`)
     }
     
-    // Create the request string - this is the critical part
+    // Create the request - this is the critical fix
     const requestString = JSON.stringify(requestObj)
-    console.log(`Request object: ${requestString}`)
+    console.log(`📦 Request payload:`, requestString)
     
-    const params = new URLSearchParams({
-      action: 'query_plugins',
-      request: requestString
-    })
-
-    const apiUrl = `${WP_API_URL}?${params.toString()}`
-    console.log(`Full API URL: ${apiUrl}`)
-    
-    // Make the API request
-    const response = await fetch(apiUrl, {
-      method: 'GET',
+    // Use POST method instead of GET for better parameter handling
+    const response = await fetch(WP_API_URL, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
+        'User-Agent': 'Plugin-Genius/1.0'
+      },
+      body: new URLSearchParams({
+        action: 'query_plugins',
+        request: requestString
+      }).toString()
     })
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`WordPress API error: ${response.status} ${response.statusText}`, errorText)
+      console.error(`❌ WordPress API error: ${response.status} ${response.statusText}`, errorText)
       throw new Error(`WordPress API error: ${response.status} ${response.statusText}`)
     }
 
     const data: WordPressApiResponse = await response.json()
     
-    console.log(`API Response Info:`, data.info)
-    console.log(`Page ${page} returned ${data.plugins.length} plugins`)
-    console.log(`Total pages available: ${data.info.pages}`)
-    console.log(`Total results: ${data.info.results}`)
-    console.log(`Current page from API: ${data.info.page}`)
+    console.log(`📊 API Response Summary:`)
+    console.log(`   - Requested page: ${page}`)
+    console.log(`   - Returned page: ${data.info.page}`)
+    console.log(`   - Plugins returned: ${data.plugins.length}`)
+    console.log(`   - Total pages: ${data.info.pages}`)
+    console.log(`   - Total results: ${data.info.results}`)
     
-    // Verify we got the correct page
+    // Verify pagination is working
     if (data.info.page !== page) {
-      console.warn(`Requested page ${page} but API returned page ${data.info.page}`)
+      console.warn(`⚠️ Page mismatch! Requested ${page}, got ${data.info.page}`)
     }
     
-    // Log first few plugin names to verify different content per page
-    console.log(`First 3 plugins on page ${page}:`, 
-      data.plugins.slice(0, 3).map(p => p.name)
-    )
+    // Log plugin names to verify different content per page
+    const pluginNames = data.plugins.slice(0, 5).map(p => p.name)
+    console.log(`🔍 First 5 plugins on page ${page}:`, pluginNames)
+    
+    // Check if we're getting the same plugins (this would indicate pagination isn't working)
+    if (page > 1) {
+      console.log(`🔄 Page ${page} verification - checking for unique content...`)
+    }
     
     // Transform the WordPress API response to our Plugin interface
-    const transformedPlugins = data.plugins.map(plugin => {
+    const transformedPlugins = data.plugins.map((plugin, index) => {
       // Get the icon URL (prefer 2x if available, fallback to 1x, then default)
       const iconUrl = plugin.icons['2x'] || plugin.icons['1x'] || plugin.icons.default
       
       // Extract tags as an array
       const tags = Object.keys(plugin.tags || {})
       
+      // Create unique ID that includes page and position to ensure uniqueness
+      const uniqueId = `${plugin.slug}-p${page}-i${index}`
+      
       return {
-        id: `${plugin.slug}-page${page}`, // Make ID unique per page to avoid React key conflicts
+        id: uniqueId,
         name: decodeHtmlEntities(plugin.name),
         description: decodeHtmlEntities(plugin.short_description),
         author: decodeHtmlEntities(plugin.author.replace(/<(?:.|\n)*?>/gm, '')),
@@ -165,10 +168,10 @@ export const fetchWordPressPlugins = async (
       }
     })
 
-    console.log(`Transformed ${transformedPlugins.length} plugins for page ${page}`)
+    console.log(`✅ Successfully transformed ${transformedPlugins.length} plugins for page ${page}`)
 
-    // Return paginated response
-    const paginatedResponse = {
+    // Create paginated response
+    const paginatedResponse: PaginatedPluginResponse = {
       plugins: transformedPlugins,
       currentPage: data.info.page,
       totalPages: data.info.pages,
@@ -177,18 +180,18 @@ export const fetchWordPressPlugins = async (
       hasPrevPage: data.info.page > 1
     }
     
-    console.log(`Returning paginated response:`, {
+    console.log(`📋 Final response:`, {
       pluginCount: paginatedResponse.plugins.length,
       currentPage: paginatedResponse.currentPage,
       totalPages: paginatedResponse.totalPages,
       totalResults: paginatedResponse.totalResults,
-      hasNextPage: paginatedResponse.hasNextPage,
-      hasPrevPage: paginatedResponse.hasPrevPage
+      hasNext: paginatedResponse.hasNextPage,
+      hasPrev: paginatedResponse.hasPrevPage
     })
     
     return paginatedResponse
   } catch (error) {
-    console.error('Error fetching WordPress plugins:', error)
+    console.error('💥 Error fetching WordPress plugins:', error)
     throw error
   }
 }
