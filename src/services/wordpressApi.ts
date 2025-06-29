@@ -52,9 +52,9 @@ const decodeHtmlEntities = (text: string): string => {
 // Function to fetch WordPress plugins from the official API
 export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Plugin[]> => {
   try {
-    // Create request parameters
+    // Create request parameters - ensure we always request exactly 48 plugins
     const requestObj: any = {
-      per_page: 48, // Request 48 plugins as specified
+      per_page: 48, // Explicitly request 48 plugins
       fields: {
         description: true,
         sections: false,
@@ -85,6 +85,8 @@ export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Pl
       request: JSON.stringify(requestObj)
     })
 
+    console.log('Requesting 48 plugins from WordPress API...')
+
     // Make the API request
     const response = await fetch(`${WP_API_URL}?${params.toString()}`)
     
@@ -94,8 +96,10 @@ export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Pl
 
     const data: WordPressApiResponse = await response.json()
     
+    console.log(`WordPress API returned ${data.plugins.length} plugins (requested 48)`)
+    
     // Transform the WordPress API response to our Plugin interface
-    return data.plugins.map(plugin => {
+    const transformedPlugins = data.plugins.map(plugin => {
       // Get the icon URL (prefer 2x if available, fallback to 1x, then default)
       const iconUrl = plugin.icons['2x'] || plugin.icons['1x'] || plugin.icons.default
       
@@ -115,6 +119,11 @@ export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Pl
         detailUrl: `https://wordpress.org/plugins/${plugin.slug}/`
       }
     })
+
+    console.log(`Successfully transformed ${transformedPlugins.length} plugins`)
+    
+    // Ensure we return exactly the plugins we received (should be up to 48)
+    return transformedPlugins
   } catch (error) {
     console.error('Error fetching WordPress plugins:', error)
     throw error
