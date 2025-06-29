@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiSearch, FiFilter, FiStar, FiDownload, FiInfo, FiX, FiChevronDown, FiChevronUp, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiSearch, FiFilter, FiStar, FiDownload, FiInfo, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import PluginCard from '../components/templates/PluginCard'
@@ -29,7 +29,6 @@ const TemplatesPage = () => {
   const [currentSearchTerm, setCurrentSearchTerm] = useState('')
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
   const [isUsingFallback, setIsUsingFallback] = useState(false)
   const [filters, setFilters] = useState({
     category: 'all',
@@ -50,23 +49,22 @@ const TemplatesPage = () => {
   ]
 
   // Function to search for plugins
-  const searchPlugins = async (term: string, page: number = 1, applyFilters = false) => {
+  const searchPlugins = async (term: string, applyFilters = false) => {
     try {
       setLoading(true)
       setError(null)
       setCurrentSearchTerm(term) // Store the current search term
       setUseFilters(applyFilters) // Store whether to use filters
-      setCurrentPage(page)
       
       // Clear existing plugins first
       setPaginatedData(null)
       
       // Fetch plugins from WordPress API
-      const results = await fetchWordPressPlugins(term, page)
+      const results = await fetchWordPressPlugins(term)
       
       // Check if results are relevant to the search term
       if (term && results.plugins.length === 0) {
-        setError(`No plugins found for "${term}" on page ${page}. Try a different search term or go back to page 1.`)
+        setError(`No plugins found for "${term}". Try a different search term.`)
       } else {
         setPaginatedData(results)
         setIsUsingFallback(false)
@@ -141,19 +139,12 @@ const TemplatesPage = () => {
   // Handle search form submission
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    searchPlugins(searchTerm, 1, showFilters) // Reset to page 1 for new search
+    searchPlugins(searchTerm, showFilters)
   }
   
   // Handle quick search (without filters)
   const handleQuickSearch = () => {
-    searchPlugins(searchTerm, 1, false) // Reset to page 1 and don't apply filters
-  }
-  
-  // Handle page navigation
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && paginatedData && newPage <= paginatedData.totalPages) {
-      searchPlugins(currentSearchTerm, newPage, useFilters)
-    }
+    searchPlugins(searchTerm, false) // Don't apply filters
   }
   
   const handleFilterChange = (key: string, value: string | number) => {
@@ -231,7 +222,7 @@ const TemplatesPage = () => {
                     className="search-clear" 
                     onClick={() => {
                       setSearchTerm('')
-                      searchPlugins('', 1)
+                      searchPlugins('')
                     }}
                   >
                     <FiX />
@@ -363,7 +354,7 @@ const TemplatesPage = () => {
               <div className="error-container">
                 <FiInfo className="error-icon" />
                 <p>{error}</p>
-                <button className="retry-button" onClick={() => searchPlugins(currentSearchTerm, currentPage, useFilters)}>
+                <button className="retry-button" onClick={() => searchPlugins(currentSearchTerm, useFilters)}>
                   Try Again
                 </button>
               </div>
@@ -379,13 +370,10 @@ const TemplatesPage = () => {
               <>
                 <div className="results-header">
                   <p className="results-count">
-                    Showing <span>{filteredPlugins.length}</span> plugins on page <span>{currentPage}</span>
+                    Showing <span>{filteredPlugins.length}</span> plugins
                     {currentSearchTerm && <span className="search-term"> for "{currentSearchTerm}"</span>}
                     {!currentSearchTerm && <span className="search-term"> (popular plugins)</span>}
                     {useFilters && <span className="filter-indicator"> with filters applied</span>}
-                    {paginatedData && (
-                      <span className="total-results"> (Total: {paginatedData.totalResults} results)</span>
-                    )}
                   </p>
                 </div>
                 
@@ -399,62 +387,6 @@ const TemplatesPage = () => {
                     />
                   ))}
                 </div>
-                
-                {/* Pagination Controls */}
-                {paginatedData && paginatedData.totalPages > 1 && (
-                  <div className="pagination-container">
-                    <div className="pagination-info">
-                      <span>Page {currentPage} of {paginatedData.totalPages}</span>
-                      <span className="pagination-total">({paginatedData.totalResults} total results)</span>
-                    </div>
-                    
-                    <div className="pagination-controls">
-                      <button 
-                        className="pagination-button"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={!paginatedData.hasPrevPage}
-                      >
-                        <FiChevronLeft />
-                        <span>Previous</span>
-                      </button>
-                      
-                      <div className="pagination-pages">
-                        {/* Show page numbers */}
-                        {Array.from({ length: Math.min(5, paginatedData.totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (paginatedData.totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= paginatedData.totalPages - 2) {
-                            pageNum = paginatedData.totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-                          
-                          return (
-                            <button
-                              key={pageNum}
-                              className={`pagination-page ${currentPage === pageNum ? 'active' : ''}`}
-                              onClick={() => handlePageChange(pageNum)}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      
-                      <button 
-                        className="pagination-button"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={!paginatedData.hasNextPage}
-                      >
-                        <span>Next</span>
-                        <FiChevronRight />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </>
             )}
           </div>

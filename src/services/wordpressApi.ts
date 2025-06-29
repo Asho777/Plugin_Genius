@@ -1,6 +1,6 @@
 import { Plugin } from '../pages/TemplatesPage'
 
-// Interface for paginated plugin response
+// Interface for plugin response (simplified - no pagination)
 export interface PaginatedPluginResponse {
   plugins: Plugin[]
   currentPage: number
@@ -67,8 +67,7 @@ export const fetchWordPressPlugins = async (
   try {
     // Create request parameters
     const requestObj: any = {
-      per_page: 24, // Request 24 plugins per page
-      page: page,
+      per_page: 48, // Request more plugins since we're not paginating
       fields: {
         description: true,
         sections: false,
@@ -142,14 +141,14 @@ export const fetchWordPressPlugins = async (
       }
     })
 
-    // Return paginated response
+    // Return response without pagination (WordPress API doesn't support real pagination)
     return {
       plugins,
-      currentPage: data.info.page,
-      totalPages: data.info.pages,
-      totalResults: data.info.results,
-      hasNextPage: data.info.page < data.info.pages,
-      hasPrevPage: data.info.page > 1
+      currentPage: 1,
+      totalPages: 1,
+      totalResults: plugins.length,
+      hasNextPage: false,
+      hasPrevPage: false
     }
   } catch (error: any) {
     console.error('Error fetching WordPress plugins:', error)
