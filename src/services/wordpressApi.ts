@@ -49,86 +49,90 @@ const decodeHtmlEntities = (text: string): string => {
   return textarea.value
 }
 
-// Function to fetch a single page of WordPress plugins
-const fetchPluginPage = async (searchTerm: string, page: number = 1): Promise<WordPressApiResponse> => {
-  // Create request parameters
-  const requestObj: any = {
-    per_page: 24, // WordPress API max is 24 per page
-    page: page,
-    fields: {
-      description: true,
-      sections: false,
-      tested: true,
-      requires: true,
-      rating: true,
-      ratings: true,
-      downloaded: true,
-      download_link: true,
-      last_updated: true,
-      homepage: true,
-      tags: true,
-      icons: true,
-    }
-  }
-  
-  // Handle search differently based on whether a search term is provided
-  if (searchTerm.trim()) {
-    // For search queries, use the direct search parameter
-    requestObj.search = searchTerm.trim()
-  } else {
-    // If no search term, show popular plugins
-    requestObj.browse = 'popular'
-  }
-  
-  const params = new URLSearchParams({
-    action: 'query_plugins',
-    request: JSON.stringify(requestObj)
-  })
-
-  // Make the API request
-  const response = await fetch(`${WP_API_URL}?${params.toString()}`)
-  
-  if (!response.ok) {
-    throw new Error(`WordPress API error: ${response.status}`)
-  }
-
-  return await response.json()
-}
-
 // Function to fetch WordPress plugins from the official API
 export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Plugin[]> => {
   try {
-    console.log('Requesting 48 plugins from WordPress API using pagination...')
+    console.log('Requesting up to 48 plugins from WordPress API...')
     
-    // Fetch first page (24 plugins)
-    const firstPageData = await fetchPluginPage(searchTerm, 1)
-    let allPlugins = [...firstPageData.plugins]
-    
-    console.log(`First page returned ${firstPageData.plugins.length} plugins`)
-    
-    // If we have less than 24 plugins on first page, we've got all available plugins
-    if (firstPageData.plugins.length < 24) {
-      console.log(`Only ${firstPageData.plugins.length} plugins available for this search`)
-    } else {
-      // Fetch second page to get up to 48 total plugins
-      try {
-        const secondPageData = await fetchPluginPage(searchTerm, 2)
-        allPlugins = [...allPlugins, ...secondPageData.plugins]
-        console.log(`Second page returned ${secondPageData.plugins.length} plugins`)
-      } catch (error) {
-        console.log('Second page not available or error occurred, using first page only')
+    // Create request parameters for a single request with higher per_page
+    const requestObj: any = {
+      per_page: 48, // Request 48 plugins directly
+      fields: {
+        description: true,
+        sections: false,
+        tested: true,
+        requires: true,
+        rating: true,
+        ratings: true,
+        downloaded: true,
+        download_link: true,
+        last_updated: true,
+        homepage: true,
+        tags: true,
+        icons: true,
       }
     }
     
-    // Limit to exactly 48 plugins if we have more
-    if (allPlugins.length > 48) {
-      allPlugins = allPlugins.slice(0, 48)
+    // Handle search differently based on whether a search term is provided
+    if (searchTerm.trim()) {
+      // For search queries, use the direct search parameter
+      requestObj.search = searchTerm.trim()
+    } else {
+      // If no search term, show popular plugins
+      requestObj.browse = 'popular'
     }
     
-    console.log(`Total plugins retrieved: ${allPlugins.length}`)
+    const params = new URLSearchParams({
+      action: 'query_plugins',
+      request: JSON.stringify(requestObj)
+    })
+
+    // Make the API request
+    const response = await fetch(`${WP_API_URL}?${params.toString()}`)
+    
+    if (!response.ok) {
+      throw new Error(`WordPress API error: ${response.status}`)
+    }
+
+    const data: WordPressApiResponse = await response.json()
+    
+    console.log(`WordPress API returned ${data.plugins.length} plugins`)
+    
+    // If we got less than expected, try a different approach
+    if (data.plugins.length < 48 && data.plugins.length === 24) {
+      console.log('Got exactly 24 plugins, attempting to fetch more with pagination...')
+      
+      // Try to get more plugins by making a second request with different parameters
+      try {
+        const secondRequestObj = { ...requestObj, page: 2 }
+        const secondParams = new URLSearchParams({
+          action: 'query_plugins',
+          request: JSON.stringify(secondRequestObj)
+        })
+        
+        const secondResponse = await fetch(`${WP_API_URL}?${secondParams.toString()}`)
+        if (secondResponse.ok) {
+          const secondData: WordPressApiResponse = await secondResponse.json()
+          console.log(`Second request returned ${secondData.plugins.length} additional plugins`)
+          
+          // Create a Set to track unique plugin slugs
+          const uniqueSlugs = new Set(data.plugins.map(p => p.slug))
+          
+          // Add only unique plugins from the second request
+          const uniqueSecondPagePlugins = secondData.plugins.filter(plugin => !uniqueSlugs.has(plugin.slug))
+          
+          // Combine the results
+          data.plugins = [...data.plugins, ...uniqueSecondPagePlugins]
+          
+          console.log(`Combined total: ${data.plugins.length} unique plugins`)
+        }
+      } catch (error) {
+        console.log('Second request failed, using first page results only')
+      }
+    }
     
     // Transform the WordPress API response to our Plugin interface
-    const transformedPlugins = allPlugins.map(plugin => {
+    const transformedPlugins = data.plugins.map(plugin => {
       // Get the icon URL (prefer 2x if available, fallback to 1x, then default)
       const iconUrl = plugin.icons['2x'] || plugin.icons['1x'] || plugin.icons.default
       
@@ -149,7 +153,7 @@ export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Pl
       }
     })
 
-    console.log(`Successfully transformed ${transformedPlugins.length} plugins`)
+    console.log(`Successfully transformed ${transformedPlugins.length} unique plugins`)
     
     return transformedPlugins
   } catch (error) {
