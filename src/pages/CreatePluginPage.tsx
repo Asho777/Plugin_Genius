@@ -27,7 +27,8 @@ const CreatePluginPage = () => {
   // Use scroll lock hook
   const { lockScroll, unlockScroll } = useScrollLock();
   
-  const [activeAI, setActiveAI] = useState('xbesh')
+  // Only use xBesh AI - no model selection needed
+  const [activeAI] = useState('xbesh')
   const [pluginName, setPluginName] = useState('')
   const [activeTab, setActiveTab] = useState('chat')
   const [messages, setMessages] = useState<Message[]>([
@@ -37,7 +38,7 @@ const CreatePluginPage = () => {
     },
     {
       role: 'assistant',
-      content: 'Hello! I\'m your xBesh AI assistant. I\'ll help you create a WordPress plugin. What kind of functionality would you like to build? For example:\n\n• A contact form plugin\n• A custom post type for portfolios\n• An e-commerce integration\n• A social media widget\n• A custom dashboard widget\n\nJust describe what you want, and I\'ll generate the complete WordPress plugin code for you!'
+      content: 'Hello! I\'m your xBesh AI assistant. I\'ll help you create a WordPress plugin. What kind of functionality would you like to build?'
     }
   ])
   const [userMessage, setUserMessage] = useState('')
@@ -45,23 +46,29 @@ const CreatePluginPage = () => {
   const [apiKeyMissing, setApiKeyMissing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [terminalInput, setTerminalInput] = useState('')
+  // Pre-populate terminal output with static content instead of generating it dynamically
   const [terminalOutput, setTerminalOutput] = useState<string[]>([
-    'WordPress Plugin Development Environment',
-    'Plugin Genius Terminal v1.0.0',
-    '=====================================',
-    '',
-    'Welcome to the WordPress Plugin Creator!',
-    'Type "help" for available commands.',
-    '',
+    '$ npm init -y',
+    'Wrote to package.json:',
+    '{',
+    `  "name": "${pluginName || 'my-custom-plugin'}",`,
+    '  "version": "1.0.0",',
+    '  "description": "",',
+    '  ...',
+    '}',
+    '$ npm install @wordpress/scripts --save-dev',
+    'Installing @wordpress/scripts...',
+    '+ @wordpress/scripts@25.0.0',
+    'added 1000 packages in 25s',
     '$ _'
   ])
+  // Pre-populate code with static content instead of generating it dynamically
   const [code, setCode] = useState(`<?php
 /**
  * Plugin Name: ${pluginName || 'My Custom Plugin'}
  * Description: A custom WordPress plugin created with Plugin Genius
  * Version: 1.0.0
  * Author: Plugin Genius
- * Text Domain: my-custom-plugin
  */
 
 // Exit if accessed directly
@@ -69,85 +76,21 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Plugin activation hook
-register_activation_hook(__FILE__, 'my_custom_plugin_activate');
-
-function my_custom_plugin_activate() {
-    // Activation code here
-    flush_rewrite_rules();
-}
-
-// Plugin deactivation hook
-register_deactivation_hook(__FILE__, 'my_custom_plugin_deactivate');
-
-function my_custom_plugin_deactivate() {
-    // Deactivation code here
-    flush_rewrite_rules();
-}
-
-// Initialize the plugin
-add_action('init', 'my_custom_plugin_init');
-
-function my_custom_plugin_init() {
-    // Plugin initialization code here
-    
-    // Example: Add a simple shortcode
-    add_shortcode('my_custom_shortcode', 'my_custom_shortcode_handler');
-}
-
-// Shortcode handler function
-function my_custom_shortcode_handler($atts) {
-    $atts = shortcode_atts(array(
-        'text' => 'Hello World!',
-    ), $atts);
-    
-    return '<div class="my-custom-plugin-output">' . esc_html($atts['text']) . '</div>';
-}
-
-// Add admin menu
-add_action('admin_menu', 'my_custom_plugin_admin_menu');
-
-function my_custom_plugin_admin_menu() {
-    add_options_page(
-        'My Custom Plugin Settings',
-        'My Custom Plugin',
-        'manage_options',
-        'my-custom-plugin',
-        'my_custom_plugin_settings_page'
+// Register block
+function register_custom_block() {
+    // Register script
+    wp_register_script(
+        'custom-block-editor',
+        plugins_url('block.js', __FILE__),
+        array('wp-blocks', 'wp-element', 'wp-editor')
     );
+
+    // Register block
+    register_block_type('custom/block', array(
+        'editor_script' => 'custom-block-editor',
+    ));
 }
-
-// Settings page callback
-function my_custom_plugin_settings_page() {
-    ?>
-    <div class="wrap">
-        <h1>My Custom Plugin Settings</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('my_custom_plugin_settings');
-            do_settings_sections('my_custom_plugin_settings');
-            ?>
-            <table class="form-table">
-                <tr>
-                    <th scope="row">Plugin Setting</th>
-                    <td>
-                        <input type="text" name="my_custom_plugin_setting" value="<?php echo esc_attr(get_option('my_custom_plugin_setting')); ?>" />
-                        <p class="description">Enter your plugin setting here.</p>
-                    </td>
-                </tr>
-            </table>
-            <?php submit_button(); ?>
-        </form>
-    </div>
-    <?php
-}
-
-// Register settings
-add_action('admin_init', 'my_custom_plugin_admin_init');
-
-function my_custom_plugin_admin_init() {
-    register_setting('my_custom_plugin_settings', 'my_custom_plugin_setting');
-}`)
+add_action('init', 'register_custom_block');`)
   const [copied, setCopied] = useState(false)
   const [formatting, setFormatting] = useState(false)
   const [previewMode, setPreviewMode] = useState('desktop')
@@ -157,11 +100,9 @@ function my_custom_plugin_admin_init() {
   const [buildResult, setBuildResult] = useState<PluginBuildResult | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollPositionRef = useRef<number>(0)
-  const aiOptionsRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
   const initialRenderRef = useRef(true)
   const codeEditorRef = useRef<HTMLPreElement>(null)
-  const chatInputRef = useRef<HTMLTextAreaElement>(null)
   
   // Super aggressive scroll prevention - runs before anything else
   useEffect(() => {
@@ -300,38 +241,6 @@ function my_custom_plugin_admin_init() {
     const checkApiKey = async () => {
       const apiKey = await getApiKey(activeAI);
       setApiKeyMissing(!apiKey);
-      
-      // Update system prompt when AI model changes
-      const model = AI_MODELS.find(model => model.id === activeAI);
-      if (model) {
-        setMessages(prev => {
-          const newMessages = [...prev];
-          const systemMessageIndex = newMessages.findIndex(m => m.role === 'system');
-          
-          if (systemMessageIndex >= 0) {
-            newMessages[systemMessageIndex] = {
-              role: 'system',
-              content: model.systemPrompt
-            };
-          } else {
-            newMessages.unshift({
-              role: 'system',
-              content: model.systemPrompt
-            });
-          }
-          
-          // Update the assistant welcome message based on the selected AI
-          const assistantMessageIndex = newMessages.findIndex(m => m.role === 'assistant');
-          if (assistantMessageIndex >= 0) {
-            newMessages[assistantMessageIndex] = {
-              role: 'assistant',
-              content: `Hello! I'm your ${model.name} assistant. I'll help you create a WordPress plugin. What kind of functionality would you like to build? For example:\n\n• A contact form plugin\n• A custom post type for portfolios\n• An e-commerce integration\n• A social media widget\n• A custom dashboard widget\n\nJust describe what you want, and I'll generate the complete WordPress plugin code for you!`
-            };
-          }
-          
-          return newMessages;
-        });
-      }
     };
     
     checkApiKey();
@@ -352,37 +261,6 @@ function my_custom_plugin_admin_init() {
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  
-  // Add event listeners to prevent scrolling on AI model buttons
-  useEffect(() => {
-    const aiOptionsElement = aiOptionsRef.current;
-    
-    if (aiOptionsElement) {
-      const handleTouchStart = (e: TouchEvent) => {
-        // Prevent default only for AI model buttons
-        const target = e.target as HTMLElement;
-        if (target.classList.contains('ai-option')) {
-          e.preventDefault();
-        }
-      };
-      
-      const handleWheel = (e: WheelEvent) => {
-        // Prevent wheel events from propagating when interacting with AI options
-        const target = e.target as HTMLElement;
-        if (target.classList.contains('ai-option') || target.closest('.ai-options')) {
-          e.stopPropagation();
-        }
-      };
-      
-      aiOptionsElement.addEventListener('touchstart', handleTouchStart, { passive: false });
-      aiOptionsElement.addEventListener('wheel', handleWheel, { passive: false });
-      
-      return () => {
-        aiOptionsElement.removeEventListener('touchstart', handleTouchStart);
-        aiOptionsElement.removeEventListener('wheel', handleWheel);
-      };
-    }
   }, []);
   
   // Extract and format code from a message
@@ -427,21 +305,15 @@ function my_custom_plugin_admin_init() {
       // Add to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ extract-code --from-ai-chat',
-        'Code extracted from AI response.',
-        'Formatting code...',
-        'Code formatted and transferred to Code editor.',
-        'Ready for testing and deployment.',
-        ''
+        '$ Format and transfer code from AI Chat',
+        'Code extracted, formatted, and transferred to the Code editor.'
       ]);
       
       // Switch to code tab
       setActiveTab('code');
       
-      // Auto-execute the plugin to show preview
-      setTimeout(() => {
-        handleExecutePlugin();
-      }, 500);
+      // Log the code to console for debugging
+      console.log("Code transferred to editor:", formattedCode);
       
       return true;
     } catch (error) {
@@ -450,10 +322,8 @@ function my_custom_plugin_admin_init() {
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ extract-code --from-ai-chat',
-        'Error formatting code. Using unformatted code instead.',
-        'Code transferred to Code editor.',
-        ''
+        '$ Format and transfer code from AI Chat',
+        'Error formatting code. Using unformatted code instead.'
       ]);
       
       // Still update the code state with unformatted code
@@ -461,6 +331,9 @@ function my_custom_plugin_admin_init() {
       
       // Switch to code tab
       setActiveTab('code');
+      
+      // Log the code to console for debugging
+      console.log("Unformatted code transferred to editor:", extractedCode);
       
       return false;
     }
@@ -478,7 +351,7 @@ function my_custom_plugin_admin_init() {
     
     // Replace code blocks with a note
     let processedResponse = response.replace(/```[\w]*\s*([\s\S]*?)\s*```/g, 
-      '```\n[Code has been automatically transferred to the Code tab]\n```');
+      '```\n[Code has been transferred to the Code tab]\n```');
     
     // Replace inline PHP code
     processedResponse = processedResponse.replace(/<\?php[\s\S]*?\?>/g, 
@@ -486,7 +359,7 @@ function my_custom_plugin_admin_init() {
     
     // Add a note at the end if it's not already there
     if (!processedResponse.includes('transferred to the Code tab')) {
-      processedResponse += '\n\n**✅ Code Transfer Complete:** All generated code has been automatically transferred to the Code tab and is ready for testing!';
+      processedResponse += '\n\n**Note:** All code has been transferred to the Code tab.';
     }
     
     return processedResponse;
@@ -535,23 +408,23 @@ function my_custom_plugin_admin_init() {
         await formatAndTransferCode(extractedCode);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
       
-      const errorMsg = error instanceof Error ? error.message : 'An unknown error occurred';
-      setErrorMessage(errorMsg);
+      // Set error message for display
+      setErrorMessage(error.message || 'An error occurred while sending the message.');
       
       // Add error message to chat
       setMessages([
         ...newMessages,
         { 
           role: 'assistant', 
-          content: `Sorry, I encountered an error: ${errorMsg}\n\nPlease check your API key in Settings and try again.` 
+          content: 'Sorry, I encountered an error. Please check your API key and try again.' 
         }
       ]);
       
       // Check if it's an API key related error
-      if (errorMsg.toLowerCase().includes('api key') || errorMsg.toLowerCase().includes('invalid') || errorMsg.toLowerCase().includes('unauthorized')) {
+      if (error.message && error.message.includes('API key')) {
         setApiKeyMissing(true);
       }
     } finally {
@@ -571,9 +444,8 @@ function my_custom_plugin_admin_init() {
     // If no code was found, add a message to the terminal
     setTerminalOutput(prev => [
       ...prev,
-      '$ transfer-code --from-message',
-      'No code found in the selected message.',
-      ''
+      '$ Transfer code from message',
+      'No code found in the selected message.'
     ]);
     
     return false;
@@ -592,9 +464,7 @@ function my_custom_plugin_admin_init() {
         setTerminalOutput(prev => [
           ...prev, 
           'Executing PHP code...',
-          'Checking syntax...',
-          'PHP code executed successfully.',
-          ''
+          'PHP code executed successfully.'
         ]);
         
         // Execute plugin if it's a plugin execution command
@@ -607,10 +477,8 @@ function my_custom_plugin_admin_init() {
           handleExecutePlugin();
           setTerminalOutput(prev => [
             ...prev,
-            `Activating plugin '${pluginName || 'my-custom-plugin'}'...`,
-            'Plugin activated successfully.',
-            'Success: Activated 1 of 1 plugins.',
-            ''
+            `Plugin '${pluginName || 'my-custom-plugin'}' activated.`,
+            'Success: Activated 1 of 1 plugins.'
           ]);
         } else if (command.includes('plugin install')) {
           setTerminalOutput(prev => [
@@ -619,14 +487,12 @@ function my_custom_plugin_admin_init() {
             'Plugin installed successfully.',
             'Activating plugin...',
             `Plugin '${pluginName || 'my-custom-plugin'}' activated.`,
-            'Success: Installed and activated 1 of 1 plugins.',
-            ''
+            'Success: Installed and activated 1 of 1 plugins.'
           ]);
         } else {
           setTerminalOutput(prev => [
             ...prev,
-            'WordPress CLI command executed successfully.',
-            ''
+            'WordPress CLI command executed successfully.'
           ]);
         }
       } else if (command.startsWith('npm ') || command.startsWith('yarn ')) {
@@ -635,10 +501,8 @@ function my_custom_plugin_admin_init() {
           setTerminalOutput(prev => [
             ...prev,
             'Installing packages...',
-            'Resolving dependencies...',
             'added 120 packages in 3.5s',
-            'Packages installed successfully.',
-            ''
+            'Packages installed successfully.'
           ]);
         } else if (command.includes('build')) {
           setTerminalOutput(prev => [
@@ -646,8 +510,7 @@ function my_custom_plugin_admin_init() {
             'Building project...',
             'Creating an optimized production build...',
             'Compiled successfully.',
-            'Build complete.',
-            ''
+            'Build complete.'
           ]);
           handleBuildPlugin();
         } else if (command.includes('start') || command.includes('dev')) {
@@ -655,14 +518,12 @@ function my_custom_plugin_admin_init() {
             ...prev,
             'Starting development server...',
             'Server running at http://localhost:3000',
-            'Ready for development.',
-            ''
+            'Ready for development.'
           ]);
         } else {
           setTerminalOutput(prev => [
             ...prev,
-            'npm command executed successfully.',
-            ''
+            'npm command executed successfully.'
           ]);
         }
       } else if (command.startsWith('zip ')) {
@@ -670,7 +531,7 @@ function my_custom_plugin_admin_init() {
         handleBuildPlugin();
       } else if (command === 'clear' || command === 'cls') {
         // Clear terminal
-        setTerminalOutput(['Terminal cleared.', '']);
+        setTerminalOutput(['Terminal cleared.']);
       } else if (command === 'extract-code' || command === 'get-code') {
         // Extract code from the last AI message
         const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
@@ -679,8 +540,7 @@ function my_custom_plugin_admin_init() {
         } else {
           setTerminalOutput(prev => [
             ...prev,
-            'No AI messages found to extract code from.',
-            ''
+            'No AI messages found to extract code from.'
           ]);
         }
       } else if (command === 'show-code') {
@@ -690,8 +550,7 @@ function my_custom_plugin_admin_init() {
           'Current code in editor:',
           '---',
           code,
-          '---',
-          ''
+          '---'
         ]);
       } else if (command === 'execute' || command === 'run') {
         // Execute the plugin
@@ -707,38 +566,26 @@ function my_custom_plugin_admin_init() {
         setTerminalOutput(prev => [
           ...prev,
           'Available commands:',
-          '',
-          'WordPress Commands:',
+          '  php <file.php>         - Execute PHP code',
           '  wp plugin activate     - Activate WordPress plugin',
           '  wp plugin install      - Install WordPress plugin',
-          '',
-          'Development Commands:',
-          '  php <file.php>         - Execute PHP code',
           '  npm install <package>  - Install npm package',
           '  npm build              - Build project',
           '  npm start              - Start development server',
-          '',
-          'Plugin Commands:',
-          '  execute, run           - Execute/test plugin',
-          '  build                  - Build plugin for distribution',
-          '  save                   - Save plugin to library',
-          '',
-          'Code Commands:',
+          '  zip <filename>         - Create zip archive',
+          '  clear, cls             - Clear terminal',
           '  extract-code, get-code - Extract code from AI message',
           '  show-code              - Show current code',
-          '',
-          'Utility Commands:',
-          '  clear, cls             - Clear terminal',
-          '  ls, dir                - List files',
-          '  help                   - Show this help',
-          ''
+          '  execute, run           - Execute plugin',
+          '  build                  - Build plugin',
+          '  save                   - Save plugin',
+          '  help                   - Show this help'
         ]);
       } else if (command === 'ls' || command === 'dir') {
         // List files
         setTerminalOutput(prev => [
           ...prev,
           'Directory listing:',
-          '',
           `${pluginName || 'my-custom-plugin'}/`,
           `├── ${pluginName || 'my-custom-plugin'}.php`,
           '├── assets/',
@@ -748,10 +595,7 @@ function my_custom_plugin_admin_init() {
           '│       └── script.js',
           '├── includes/',
           '│   └── functions.php',
-          '├── languages/',
-          '│   └── my-custom-plugin.pot',
-          '└── readme.txt',
-          ''
+          '└── readme.txt'
         ]);
       } else if (command === 'cat' && command.includes('.php')) {
         // Show file content
@@ -760,27 +604,13 @@ function my_custom_plugin_admin_init() {
           'File content:',
           '---',
           code,
-          '---',
-          ''
-        ]);
-      } else if (command === 'status') {
-        // Show plugin status
-        setTerminalOutput(prev => [
-          ...prev,
-          'Plugin Status:',
-          `Name: ${pluginName || 'My Custom Plugin'}`,
-          `Status: ${pluginExecution?.success ? 'Active' : 'Inactive'}`,
-          `Code Lines: ${code.split('\n').length}`,
-          `Last Modified: ${new Date().toLocaleString()}`,
-          ''
+          '---'
         ]);
       } else {
         // Generic response
         setTerminalOutput(prev => [
           ...prev,
-          `Command executed: ${command}`,
-          'Type "help" for available commands.',
-          ''
+          `Command executed: ${command}`
         ]);
       }
       
@@ -793,14 +623,6 @@ function my_custom_plugin_admin_init() {
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    
-    // Add to terminal output
-    setTerminalOutput(prev => [
-      ...prev,
-      '$ copy-code',
-      'Code copied to clipboard.',
-      ''
-    ]);
   };
   
   // Handle format code
@@ -817,9 +639,8 @@ function my_custom_plugin_admin_init() {
       // Add to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ format-code',
-        'Code formatted successfully.',
-        ''
+        '$ Format code',
+        'Code formatted successfully.'
       ]);
     } catch (error) {
       console.error('Error formatting code:', error);
@@ -827,9 +648,8 @@ function my_custom_plugin_admin_init() {
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ format-code',
-        'Error formatting code. Please try again.',
-        ''
+        '$ Format code',
+        'Error formatting code. Please try again.'
       ]);
     } finally {
       setFormatting(false);
@@ -839,12 +659,7 @@ function my_custom_plugin_admin_init() {
   // Handle save plugin
   const handleSavePlugin = () => {
     if (!pluginName) {
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ save-plugin',
-        'Error: Please enter a plugin name before saving.',
-        ''
-      ]);
+      alert('Please enter a plugin name before saving.');
       return;
     }
     
@@ -861,20 +676,14 @@ function my_custom_plugin_admin_init() {
       // Add to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        `$ save-plugin "${pluginName}"`,
-        'Plugin saved successfully to your library.',
-        'You can find it in the "My Plugins" section.',
-        ''
+        `$ Save plugin "${pluginName}"`,
+        'Plugin saved successfully to your library.'
       ]);
       
+      alert('Plugin saved successfully!');
     } catch (error) {
       console.error('Error saving plugin:', error);
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ save-plugin',
-        'Error saving plugin. Please try again.',
-        ''
-      ]);
+      alert('Error saving plugin. Please try again.');
     }
   };
   
@@ -896,16 +705,14 @@ function my_custom_plugin_admin_init() {
       // Add execution result to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        `$ execute-plugin "${pluginName || 'my-custom-plugin'}"`,
-        'Analyzing plugin code...',
-        'Checking WordPress compatibility...',
+        `$ php -l plugin.php`,
         result.success 
-          ? '✅ Plugin executed successfully!' 
-          : `❌ Plugin execution failed: ${result.errors}`,
+          ? 'No syntax errors detected in plugin.php' 
+          : `PHP Parse error: ${result.errors} in plugin.php`,
+        `$ wp plugin activate ${pluginName || 'my-custom-plugin'}`,
         result.success 
-          ? 'Plugin is ready for activation.' 
-          : 'Please fix the errors and try again.',
-        ''
+          ? `Plugin '${pluginName || 'my-custom-plugin'}' activated.` 
+          : `Error: ${result.errors}`
       ]);
       
     } catch (error) {
@@ -920,9 +727,8 @@ function my_custom_plugin_admin_init() {
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ execute-plugin',
-        'Error executing plugin. Please check your code and try again.',
-        ''
+        '$ Execute plugin',
+        'Error executing plugin. Please check your code and try again.'
       ]);
     } finally {
       setIsExecuting(false);
@@ -934,12 +740,7 @@ function my_custom_plugin_admin_init() {
     if (!code.trim() || isBuilding) return;
     
     if (!pluginName) {
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ build-plugin',
-        'Error: Please enter a plugin name before building.',
-        ''
-      ]);
+      alert('Please enter a plugin name before building.');
       return;
     }
     
@@ -960,19 +761,37 @@ function my_custom_plugin_admin_init() {
       // Add build result to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        `$ build-plugin "${pluginName}"`,
-        'Creating plugin structure...',
-        'Generating assets...',
-        'Creating readme.txt...',
-        'Compressing files...',
+        `$ zip -r ${result.filename || 'plugin.zip'} .`,
         result.success 
-          ? `✅ Plugin built successfully: ${result.filename}` 
-          : `❌ Build failed: ${result.error}`,
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/` 
+          : `Error: ${result.error}`,
         result.success 
-          ? 'Plugin zip file has been downloaded.' 
-          : 'Please fix the errors and try again.',
-        ''
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/${pluginName || 'my-custom-plugin'}.php` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/readme.txt` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/css/` 
+          : '',
+        result.success 
+          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/js/` 
+          : '',
+        result.success 
+          ? `Successfully created ${result.filename}` 
+          : ''
       ]);
+      
+      if (result.success) {
+        // Add download notification to terminal
+        setTerminalOutput(prev => [
+          ...prev,
+          `Plugin zip file "${result.filename}" has been downloaded to your computer.`
+        ]);
+      }
       
     } catch (error) {
       console.error('Error building plugin:', error);
@@ -986,48 +805,12 @@ function my_custom_plugin_admin_init() {
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ build-plugin',
-        'Error building plugin. Please try again.',
-        ''
+        '$ Build plugin',
+        'Error building plugin. Please try again.'
       ]);
     } finally {
       setIsBuilding(false);
     }
-  };
-  
-  // Handle AI model selection with aggressive approach to prevent scrolling
-  const handleAIModelSelect = (modelId: string) => {
-    // Lock scroll before making any changes
-    lockScroll();
-    
-    // Store current scroll position
-    const currentScrollPosition = window.scrollY;
-    
-    // Update the active AI model
-    setActiveAI(modelId);
-    
-    // Clear any previous error messages when switching models
-    setErrorMessage('');
-    
-    // Use multiple techniques to ensure scroll position is maintained
-    requestAnimationFrame(() => {
-      window.scrollTo(0, currentScrollPosition);
-      
-      // Schedule multiple attempts to restore scroll position
-      setTimeout(() => {
-        window.scrollTo(0, currentScrollPosition);
-        
-        // Unlock scroll after a delay to ensure the position is maintained
-        setTimeout(() => {
-          unlockScroll();
-          
-          // One final scroll position check
-          setTimeout(() => {
-            window.scrollTo(0, currentScrollPosition);
-          }, 50);
-        }, 50);
-      }, 0);
-    });
   };
   
   // Update plugin name in code when it changes
@@ -1041,7 +824,7 @@ function my_custom_plugin_admin_init() {
       setCode(updatedCode);
     }
   }, [pluginName]);
-
+  
   return (
     <div className="create-plugin-page" ref={pageRef}>
       <div className="create-plugin-navbar">
@@ -1057,7 +840,7 @@ function my_custom_plugin_admin_init() {
             transition={{ duration: 0.5 }}
           >
             <h1 className="page-title">Create Your Custom Plugin</h1>
-            <p className="page-subtitle">Use AI to build powerful WordPress plugins without writing a single line of code</p>
+            <p className="page-subtitle">Use xBesh AI to build powerful WordPress plugins without writing a single line of code</p>
             
             <div className="plugin-name-container">
               <input 
@@ -1074,27 +857,7 @@ function my_custom_plugin_admin_init() {
         <section className="workspace-section">
           <div className="workspace-container">
             <div className="ai-selector">
-              <div className="ai-selector-label">AI Model:</div>
-              <div className="ai-options" ref={aiOptionsRef}>
-                {AI_MODELS.map(ai => (
-                  <div 
-                    key={ai.id}
-                    className={`ai-option ${activeAI === ai.id ? 'active' : ''}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleAIModelSelect(ai.id);
-                    }}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onTouchStart={(e) => e.preventDefault()}
-                    onTouchEnd={(e) => e.preventDefault()}
-                    onTouchMove={(e) => e.preventDefault()}
-                    onWheel={(e) => e.preventDefault()}
-                  >
-                    {ai.name}
-                  </div>
-                ))}
-              </div>
+              <div className="ai-selector-label">AI Model: xBesh AI</div>
               
               <div className="workspace-actions">
                 <button className="action-button" onClick={handleSavePlugin}>
@@ -1130,7 +893,7 @@ function my_custom_plugin_admin_init() {
                 <FiAlertCircle />
                 <div>
                   <p>
-                    <strong>API Key Required:</strong> Please add your {AI_MODELS.find(m => m.id === activeAI)?.name} API key in settings to use this model.
+                    <strong>API Key Required:</strong> Please add your xBesh AI API key in settings to use this model.
                   </p>
                   <button 
                     className="api-key-button"
@@ -1149,14 +912,12 @@ function my_custom_plugin_admin_init() {
                   <p>
                     <strong>Error:</strong> {errorMessage}
                   </p>
-                  {errorMessage.toLowerCase().includes('api key') && (
-                    <button 
-                      className="error-action-button"
-                      onClick={() => window.location.href = '/settings'}
-                    >
-                      Fix API Key
-                    </button>
-                  )}
+                  <button 
+                    className="error-action-button"
+                    onClick={() => setErrorMessage('')}
+                  >
+                    Dismiss
+                  </button>
                 </div>
               </div>
             )}
@@ -1251,9 +1012,8 @@ function my_custom_plugin_admin_init() {
                         onSubmit={handleSendMessage}
                       >
                         <textarea 
-                          ref={chatInputRef}
                           className="chat-input" 
-                          placeholder="Describe the WordPress plugin you want to create..."
+                          placeholder="Type your message here..."
                           value={userMessage}
                           onChange={(e) => setUserMessage(e.target.value)}
                           onKeyDown={(e) => {
@@ -1265,11 +1025,12 @@ function my_custom_plugin_admin_init() {
                           disabled={isLoading || apiKeyMissing}
                         ></textarea>
                         <button 
-                          type="submit" 
+                          type="button" 
                           className="chat-send-button"
-                          disabled={isLoading || apiKeyMissing || !userMessage.trim()}
+                          onClick={() => handleSendMessage()}
+                          disabled={isLoading || apiKeyMissing}
                         >
-                          {isLoading ? 'Sending...' : 'Send'}
+                          Send
                         </button>
                       </form>
                     </div>
@@ -1346,7 +1107,7 @@ function my_custom_plugin_admin_init() {
               <div className="preview-panel">
                 <div className="preview-header">
                   <h3 className="preview-title">
-                    <FiEye /> Live Preview
+                    <FiEye /> Preview
                   </h3>
                   <div className="preview-controls">
                     <button 
@@ -1416,8 +1177,8 @@ function my_custom_plugin_admin_init() {
                         {pluginExecution && (
                           <div className={`wp-preview-status ${pluginExecution.success ? 'success' : 'error'}`}>
                             {pluginExecution.success 
-                              ? `✅ Plugin "${pluginName || 'My Custom Plugin'}" activated successfully!` 
-                              : `❌ Error: ${pluginExecution.errors}`}
+                              ? `Plugin "${pluginName || 'My Custom Plugin'}" activated successfully.` 
+                              : `Error: ${pluginExecution.errors}`}
                           </div>
                         )}
                         

@@ -1,131 +1,125 @@
+/* Settings Page Styles */
 .settings-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
-  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-black);
+  color: var(--color-white);
 }
 
 .settings-content {
-  padding-top: 80px;
+  flex: 1;
+  padding: var(--spacing-xl) 0;
 }
 
 .settings-header {
-  text-align: center;
-  padding: 60px 20px;
-  background: linear-gradient(135deg, rgba(139, 69, 19, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%);
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-xl) 0;
+  margin-bottom: var(--spacing-xl);
 }
 
-.settings-header .header-content {
-  max-width: 800px;
+.header-content {
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 0 var(--spacing-lg);
 }
 
-.settings-header .page-title {
-  font-size: 3rem;
+.page-title {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-primary);
   font-weight: 700;
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, #ff8c00 0%, #ffa500 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-.settings-header .page-subtitle {
-  font-size: 1.2rem;
-  color: #b0b0b0;
-  margin-bottom: 0;
+.page-subtitle {
+  font-size: 1.1rem;
+  color: var(--color-light-gray);
+  max-width: 600px;
 }
 
 .settings-section {
-  padding: 60px 20px;
+  padding: 0 var(--spacing-lg);
 }
 
 .settings-container {
   max-width: 1200px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: 40px;
+  display: flex;
+  gap: var(--spacing-xl);
 }
 
 .settings-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  width: 250px;
+  flex-shrink: 0;
 }
 
 .settings-tab {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  color: #b0b0b0;
-  text-decoration: none;
-  transition: all 0.3s ease;
+  width: 100%;
+  padding: var(--spacing-md);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-light-gray);
+  text-align: left;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.settings-tab:hover {
-  background: rgba(255, 140, 0, 0.1);
-  border-color: rgba(255, 140, 0, 0.3);
-  color: #ff8c00;
-  transform: translateX(4px);
-}
-
-.settings-tab.active {
-  background: linear-gradient(135deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 165, 0, 0.2) 100%);
-  border-color: #ff8c00;
-  color: #ff8c00;
+  margin-bottom: var(--spacing-sm);
+  transition: all 0.2s ease;
 }
 
 .settings-tab svg {
+  margin-right: var(--spacing-md);
   font-size: 1.2rem;
 }
 
+.settings-tab:hover {
+  background-color: rgba(255, 215, 0, 0.1);
+  color: var(--color-primary);
+}
+
+.settings-tab.active {
+  background-color: rgba(255, 215, 0, 0.15);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
 .settings-content-panel {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 40px;
+  flex: 1;
+  background-color: var(--color-dark-gray);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  border: 1px solid rgba(255, 215, 0, 0.1);
 }
 
 .panel-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 12px;
-  color: #ffffff;
+  font-size: 1.8rem;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .panel-description {
-  color: #b0b0b0;
-  margin-bottom: 32px;
+  color: var(--color-light-gray);
+  margin-bottom: var(--spacing-xl);
   line-height: 1.6;
 }
 
-.api-keys-form,
-.account-form,
-.security-form,
-.notifications-form,
-.preferences-form {
+/* API Keys Panel */
+.api-keys-form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-lg);
 }
 
 .api-key-input-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .api-key-input-group label {
-  font-weight: 600;
-  color: #ffffff;
-  font-size: 1rem;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 500;
 }
 
 .api-key-input-wrapper {
@@ -136,13 +130,13 @@
 
 .api-key-input-group input {
   width: 100%;
-  padding: 16px 50px 16px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  padding: var(--spacing-md) 50px var(--spacing-md) var(--spacing-md);
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--color-white);
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
 }
 
 .api-key-input-group input.error {
@@ -151,13 +145,8 @@
 }
 
 .api-key-input-group input:focus {
+  border-color: var(--color-primary);
   outline: none;
-  border-color: #ff8c00;
-  background: rgba(255, 140, 0, 0.1);
-}
-
-.api-key-input-group input::placeholder {
-  color: #666;
 }
 
 .validation-icon {
@@ -188,12 +177,12 @@
 }
 
 .api-key-help {
-  color: #888;
-  font-size: 0.9rem;
-  line-height: 1.4;
+  margin-top: var(--spacing-xs);
+  font-size: 0.8rem;
+  color: var(--color-light-gray);
 }
 
-.api-key-help .key-format {
+.key-format {
   font-family: 'Courier New', monospace;
   background: rgba(255, 255, 255, 0.05);
   padding: 4px 8px;
@@ -218,188 +207,153 @@
   font-size: 1.2rem;
 }
 
+.api-keys-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-lg);
+}
+
+/* Account Panel */
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .form-group label {
-  font-weight: 600;
-  color: #ffffff;
-  font-size: 1rem;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 500;
 }
 
 .form-group input,
 .form-group select {
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  padding: var(--spacing-md);
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--color-white);
 }
 
 .form-group input:focus,
 .form-group select:focus {
+  border-color: var(--color-primary);
   outline: none;
-  border-color: #ff8c00;
-  background: rgba(255, 140, 0, 0.1);
-}
-
-.form-group input::placeholder {
-  color: #666;
 }
 
 .form-group.checkbox {
   flex-direction: row;
   align-items: flex-start;
-  gap: 12px;
 }
 
-.form-group.checkbox input[type="checkbox"] {
-  width: auto;
-  margin-top: 2px;
-  accent-color: #ff8c00;
+.form-group.checkbox input {
+  margin-right: var(--spacing-sm);
+  margin-top: 5px;
 }
 
 .form-group.checkbox label {
-  flex: 1;
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 .help-text {
-  color: #888;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin-top: 4px;
+  margin-top: var(--spacing-xs);
+  font-size: 0.8rem;
+  color: var(--color-light-gray);
+  margin-left: var(--spacing-xl);
 }
 
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 32px 0 16px 0;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.api-keys-actions,
 .account-actions,
 .security-actions,
 .notifications-actions,
 .preferences-actions {
   display: flex;
-  gap: 16px;
-  margin-top: 32px;
+  justify-content: flex-end;
+  margin-top: var(--spacing-lg);
 }
 
 .save-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 32px;
-  background: linear-gradient(135deg, #ff8c00 0%, #ffa500 100%);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: var(--color-primary);
+  color: var(--color-black);
   border: none;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+}
+
+.save-button svg {
+  margin-right: var(--spacing-sm);
 }
 
 .save-button:hover {
-  background: linear-gradient(135deg, #e67e00 0%, #ff9500 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 140, 0, 0.3);
+  background-color: var(--color-primary-dark);
 }
 
 .save-button:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .save-button.success {
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  background-color: var(--color-success);
 }
 
-.save-button.success:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+/* Security Panel */
+.section-title {
+  font-size: 1.3rem;
+  margin: var(--spacing-xl) 0 var(--spacing-md);
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
-/* Dark dropdown styling */
-.dark-dropdowns select {
-  background: rgba(15, 15, 35, 0.95) !important;
-  color: #ffffff !important;
-}
-
-.dark-dropdowns select option {
-  background: rgba(15, 15, 35, 0.95) !important;
-  color: #ffffff !important;
-}
-
+/* Timezone Select */
 .timezone-select {
-  max-height: 200px;
+  max-height: 150px;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
+/* Dropdown styling for dark background */
+select option {
+  background-color: var(--color-dark-gray);
+  color: var(--color-white);
+}
+
+/* Ensure dropdown menus have dark background */
+.form-group select {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--color-white);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
   .settings-container {
-    grid-template-columns: 1fr;
-    gap: 24px;
+    flex-direction: column;
   }
   
   .settings-sidebar {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 12px;
-    padding-bottom: 8px;
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
   }
   
   .settings-tab {
-    white-space: nowrap;
-    min-width: fit-content;
+    display: inline-flex;
+    width: auto;
+    margin-right: var(--spacing-sm);
   }
-  
-  .settings-content-panel {
-    padding: 24px;
-  }
-  
+}
+
+@media (max-width: 768px) {
   .panel-title {
     font-size: 1.5rem;
   }
   
-  .settings-header .page-title {
-    font-size: 2rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .settings-header {
-    padding: 40px 20px;
-  }
-  
-  .settings-section {
-    padding: 40px 20px;
-  }
-  
   .settings-content-panel {
-    padding: 20px;
-  }
-  
-  .api-keys-actions,
-  .account-actions,
-  .security-actions,
-  .notifications-actions,
-  .preferences-actions {
-    flex-direction: column;
-  }
-  
-  .save-button {
-    justify-content: center;
+    padding: var(--spacing-lg);
   }
 }

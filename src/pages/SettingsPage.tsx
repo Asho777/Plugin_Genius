@@ -16,11 +16,9 @@ import '../styles/settings.css'
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('api-keys')
+  // Only store API key for xBesh AI
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({
-    'gpt-4': '',
-    'claude': '',
-    'gemini': '',
-    'llama': ''
+    'xbesh': ''
   })
   const [apiKeyErrors, setApiKeyErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -56,7 +54,7 @@ const SettingsPage = () => {
     dark_mode: true
   })
   
-  // Load API keys
+  // Load API keys (only xBesh AI)
   useEffect(() => {
     const loadApiKeys = async () => {
       const keys: Record<string, string> = {};
@@ -348,8 +346,8 @@ const SettingsPage = () => {
                 <div className="api-keys-panel">
                   <h2 className="panel-title">API Keys</h2>
                   <p className="panel-description">
-                    Add your API keys to use different AI models for plugin creation.
-                    Your keys are securely stored and never shared with third parties.
+                    Add your xBesh AI API key to use the AI-powered plugin creation features.
+                    Your key is securely stored and never shared with third parties.
                   </p>
                   
                   {saveError && (
@@ -387,13 +385,7 @@ const SettingsPage = () => {
                         )}
                         <div className="api-key-help">
                           <p>
-                            {model.id === 'gpt-4' && 'Get your OpenAI API key from platform.openai.com. Keys start with "sk-".'}
-                            {model.id === 'gpt-4o' && 'Get your OpenAI API key from platform.openai.com. Keys start with "sk-".'}
-                            {model.id === 'gpt-4-1' && 'Get your GitHub Personal Access Token from github.com/settings/tokens. Keys start with "ghp_".'}
-                            {model.id === 'claude' && 'Get your Anthropic API key from console.anthropic.com. Keys start with "sk-ant-".'}
-                            {model.id === 'gemini' && 'Get your Google AI API key from aistudio.google.com. Keys start with "AIza".'}
-                            {model.id === 'llama' && 'Get your Together AI API key from api.together.xyz/settings/api-keys.'}
-                            {model.id === 'xbesh' && 'Get your xBesh AI API key from the xBesh AI platform.'}
+                            Get your xBesh AI API key from the xBesh AI platform.
                           </p>
                           {model.keyExample && (
                             <p className="key-format">Format: {model.keyExample}</p>
