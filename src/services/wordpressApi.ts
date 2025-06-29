@@ -96,21 +96,19 @@ export const fetchWordPressPlugins = async (
       console.log(`🔥 Browse mode: popular plugins on page ${page}`)
     }
     
-    // Create the request - this is the critical fix
-    const requestString = JSON.stringify(requestObj)
-    console.log(`📦 Request payload:`, requestString)
+    console.log(`📦 Request payload:`, requestObj)
     
-    // Use POST method instead of GET for better parameter handling
+    // Use POST method with JSON content type
     const response = await fetch(WP_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         action: 'query_plugins',
-        request: requestString
-      }).toString()
+        request: requestObj
+      })
     })
     
     if (!response.ok) {
