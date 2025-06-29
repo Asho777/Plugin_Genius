@@ -160,6 +160,7 @@ function my_custom_plugin_admin_init() {
   const pageRef = useRef<HTMLDivElement>(null)
   const initialRenderRef = useRef(true)
   const codeEditorRef = useRef<HTMLPreElement>(null)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
   
   // Super aggressive scroll prevention - runs before anything else
   useEffect(() => {
@@ -316,6 +317,15 @@ function my_custom_plugin_admin_init() {
               role: 'system',
               content: model.systemPrompt
             });
+          }
+          
+          // Update the assistant welcome message based on the selected AI
+          const assistantMessageIndex = newMessages.findIndex(m => m.role === 'assistant');
+          if (assistantMessageIndex >= 0) {
+            newMessages[assistantMessageIndex] = {
+              role: 'assistant',
+              content: `Hello! I'm your ${model.name} assistant. I'll help you create a WordPress plugin. What kind of functionality would you like to build? For example:\n\n• A contact form plugin\n• A custom post type for portfolios\n• An e-commerce integration\n• A social media widget\n• A custom dashboard widget\n\nJust describe what you want, and I'll generate the complete WordPress plugin code for you!`
+            };
           }
           
           return newMessages;
@@ -1034,7 +1044,7 @@ function my_custom_plugin_admin_init() {
             transition={{ duration: 0.5 }}
           >
             <h1 className="page-title">Create Your Custom Plugin</h1>
-            <p className="page-subtitle">Use xBesh AI to build powerful WordPress plugins without writing a single line of code</p>
+            <p className="page-subtitle">Use AI to build powerful WordPress plugins without writing a single line of code</p>
             
             <div className="plugin-name-container">
               <input 
@@ -1053,7 +1063,7 @@ function my_custom_plugin_admin_init() {
             <div className="ai-selector">
               <div className="ai-selector-label">AI Model:</div>
               <div className="ai-options" ref={aiOptionsRef}>
-                {AI_MODELS.filter(ai => ai.id === 'xbesh').map(ai => (
+                {AI_MODELS.map(ai => (
                   <div 
                     key={ai.id}
                     className={`ai-option ${activeAI === ai.id ? 'active' : ''}`}
@@ -1105,7 +1115,7 @@ function my_custom_plugin_admin_init() {
             {apiKeyMissing && (
               <div className="api-key-warning">
                 <p>
-                  <strong>API Key Required:</strong> Please add your xBesh AI API key in settings to use this model.
+                  <strong>API Key Required:</strong> Please add your {AI_MODELS.find(m => m.id === activeAI)?.name} API key in settings to use this model.
                 </p>
                 <button 
                   className="api-key-button"
@@ -1206,6 +1216,7 @@ function my_custom_plugin_admin_init() {
                         onSubmit={handleSendMessage}
                       >
                         <textarea 
+                          ref={chatInputRef}
                           className="chat-input" 
                           placeholder="Describe the WordPress plugin you want to create..."
                           value={userMessage}
@@ -1219,12 +1230,11 @@ function my_custom_plugin_admin_init() {
                           disabled={isLoading || apiKeyMissing}
                         ></textarea>
                         <button 
-                          type="button" 
+                          type="submit" 
                           className="chat-send-button"
-                          onClick={() => handleSendMessage()}
-                          disabled={isLoading || apiKeyMissing}
+                          disabled={isLoading || apiKeyMissing || !userMessage.trim()}
                         >
-                          Send
+                          {isLoading ? 'Sending...' : 'Send'}
                         </button>
                       </form>
                     </div>
