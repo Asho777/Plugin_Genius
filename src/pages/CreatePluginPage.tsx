@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader } from 'react-icons/fi'
+import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader, FiAlertCircle } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import { AI_MODELS, Message, sendMessage, getApiKey } from '../services/aiService'
@@ -43,6 +43,7 @@ const CreatePluginPage = () => {
   const [userMessage, setUserMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [apiKeyMissing, setApiKeyMissing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [terminalInput, setTerminalInput] = useState('')
   const [terminalOutput, setTerminalOutput] = useState<string[]>([
     'WordPress Plugin Development Environment',
@@ -500,6 +501,9 @@ function my_custom_plugin_admin_init() {
     
     if (!userMessage.trim() || isLoading) return;
     
+    // Clear any previous error messages
+    setErrorMessage('');
+    
     // Add user message to chat
     const newMessages = [
       ...messages,
@@ -534,16 +538,22 @@ function my_custom_plugin_admin_init() {
     } catch (error) {
       console.error('Error sending message:', error);
       
+      const errorMsg = error instanceof Error ? error.message : 'An unknown error occurred';
+      setErrorMessage(errorMsg);
+      
       // Add error message to chat
       setMessages([
         ...newMessages,
         { 
           role: 'assistant', 
-          content: 'Sorry, I encountered an error. Please check your API key and try again.' 
+          content: `Sorry, I encountered an error: ${errorMsg}\n\nPlease check your API key in Settings and try again.` 
         }
       ]);
       
-      setApiKeyMissing(true);
+      // Check if it's an API key related error
+      if (errorMsg.toLowerCase().includes('api key') || errorMsg.toLowerCase().includes('invalid') || errorMsg.toLowerCase().includes('unauthorized')) {
+        setApiKeyMissing(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -996,6 +1006,9 @@ function my_custom_plugin_admin_init() {
     // Update the active AI model
     setActiveAI(modelId);
     
+    // Clear any previous error messages when switching models
+    setErrorMessage('');
+    
     // Use multiple techniques to ensure scroll position is maintained
     requestAnimationFrame(() => {
       window.scrollTo(0, currentScrollPosition);
@@ -1114,15 +1127,37 @@ function my_custom_plugin_admin_init() {
             
             {apiKeyMissing && (
               <div className="api-key-warning">
-                <p>
-                  <strong>API Key Required:</strong> Please add your {AI_MODELS.find(m => m.id === activeAI)?.name} API key in settings to use this model.
-                </p>
-                <button 
-                  className="api-key-button"
-                  onClick={() => window.location.href = '/settings'}
-                >
-                  Add API Key
-                </button>
+                <FiAlertCircle />
+                <div>
+                  <p>
+                    <strong>API Key Required:</strong> Please add your {AI_MODELS.find(m => m.id === activeAI)?.name} API key in settings to use this model.
+                  </p>
+                  <button 
+                    className="api-key-button"
+                    onClick={() => window.location.href = '/settings'}
+                  >
+                    Add API Key
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {errorMessage && (
+              <div className="error-message-banner">
+                <FiAlertCircle />
+                <div>
+                  <p>
+                    <strong>Error:</strong> {errorMessage}
+                  </p>
+                  {errorMessage.toLowerCase().includes('api key') && (
+                    <button 
+                      className="error-action-button"
+                      onClick={() => window.location.href = '/settings'}
+                    >
+                      Fix API Key
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             

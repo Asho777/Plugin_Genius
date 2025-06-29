@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiSave, FiKey, FiShield, FiUser, FiMail, FiGlobe } from 'react-icons/fi'
+import { FiSave, FiKey, FiShield, FiUser, FiMail, FiGlobe, FiAlertCircle, FiCheckCircle } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
-import { AI_MODELS, getApiKey, saveApiKey } from '../services/aiService'
+import { AI_MODELS, getApiKey, saveApiKey, validateApiKey } from '../services/aiService'
 import { 
   getUserProfile, updateUserProfile, 
   getUserSecurity, updateUserSecurity, updateUserPassword, 
@@ -22,8 +22,10 @@ const SettingsPage = () => {
     'gemini': '',
     'llama': ''
   })
+  const [apiKeyErrors, setApiKeyErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveError, setSaveError] = useState('')
   
   // User settings state
   const [profile, setProfile] = useState<UserProfile>({
@@ -109,22 +111,54 @@ const SettingsPage = () => {
     loadUserSettings();
   }, []);
   
+  // Validate API key on input change
+  const handleApiKeyChange = (modelId: string, value: string) => {
+    setApiKeys({...apiKeys, [modelId]: value});
+    
+    // Clear previous error
+    if (apiKeyErrors[modelId]) {
+      setApiKeyErrors({...apiKeyErrors, [modelId]: ''});
+    }
+    
+    // Validate if key is not empty
+    if (value.trim()) {
+      const validation = validateApiKey(modelId, value);
+      if (!validation.isValid) {
+        setApiKeyErrors({...apiKeyErrors, [modelId]: validation.error || 'Invalid API key format'});
+      }
+    }
+  };
+  
   // Handle save API keys
   const handleSaveApiKeys = async () => {
     setLoading(true);
+    setSaveError('');
     
     try {
+      const errors: Record<string, string> = {};
+      let hasErrors = false;
+      
       for (const model of AI_MODELS) {
         if (apiKeys[model.id]) {
-          await saveApiKey(model.id, apiKeys[model.id]);
+          const result = await saveApiKey(model.id, apiKeys[model.id]);
+          if (!result.success) {
+            errors[model.id] = result.error || 'Failed to save API key';
+            hasErrors = true;
+          }
         }
       }
       
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setApiKeyErrors(errors);
+      
+      if (hasErrors) {
+        setSaveError('Some API keys could not be saved. Please check the errors above.');
+      } else {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      }
     } catch (error) {
       console.error('Error saving API keys:', error);
-      alert('Error saving API keys. Please try again.');
+      setSaveError('Error saving API keys. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -318,24 +352,52 @@ const SettingsPage = () => {
                     Your keys are securely stored and never shared with third parties.
                   </p>
                   
+                  {saveError && (
+                    <div className="error-message">
+                      <FiAlertCircle />
+                      <span>{saveError}</span>
+                    </div>
+                  )}
+                  
                   <div className="api-keys-form">
                     {AI_MODELS.map(model => (
                       <div key={model.id} className="api-key-input-group">
                         <label htmlFor={`api-key-${model.id}`}>{model.name} API Key</label>
-                        <input
-                          id={`api-key-${model.id}`}
-                          type="password"
-                          placeholder={`Enter your ${model.name} API key`}
-                          value={apiKeys[model.id]}
-                          onChange={(e) => setApiKeys({...apiKeys, [model.id]: e.target.value})}
-                        />
+                        <div className="api-key-input-wrapper">
+                          <input
+                            id={`api-key-${model.id}`}
+                            type="password"
+                            placeholder={model.keyExample || `Enter your ${model.name} API key`}
+                            value={apiKeys[model.id]}
+                            onChange={(e) => handleApiKeyChange(model.id, e.target.value)}
+                            className={apiKeyErrors[model.id] ? 'error' : ''}
+                          />
+                          {apiKeys[model.id] && !apiKeyErrors[model.id] && (
+                            <FiCheckCircle className="validation-icon success" />
+                          )}
+                          {apiKeyErrors[model.id] && (
+                            <FiAlertCircle className="validation-icon error" />
+                          )}
+                        </div>
+                        {apiKeyErrors[model.id] && (
+                          <div className="api-key-error">
+                            <FiAlertCircle />
+                            <span>{apiKeyErrors[model.id]}</span>
+                          </div>
+                        )}
                         <div className="api-key-help">
                           <p>
-                            {model.id === 'gpt-4' && 'Get your OpenAI API key from the OpenAI dashboard.'}
-                            {model.id === 'claude' && 'Get your Anthropic API key from the Anthropic console.'}
-                            {model.id === 'gemini' && 'Get your Google AI API key from the Google AI Studio.'}
-                            {model.id === 'llama' && 'Get your Together AI API key from the Together AI platform.'}
+                            {model.id === 'gpt-4' && 'Get your OpenAI API key from platform.openai.com. Keys start with "sk-".'}
+                            {model.id === 'gpt-4o' && 'Get your OpenAI API key from platform.openai.com. Keys start with "sk-".'}
+                            {model.id === 'gpt-4-1' && 'Get your GitHub Personal Access Token from github.com/settings/tokens. Keys start with "ghp_".'}
+                            {model.id === 'claude' && 'Get your Anthropic API key from console.anthropic.com. Keys start with "sk-ant-".'}
+                            {model.id === 'gemini' && 'Get your Google AI API key from aistudio.google.com. Keys start with "AIza".'}
+                            {model.id === 'llama' && 'Get your Together AI API key from api.together.xyz/settings/api-keys.'}
+                            {model.id === 'xbesh' && 'Get your xBesh AI API key from the xBesh AI platform.'}
                           </p>
+                          {model.keyExample && (
+                            <p className="key-format">Format: {model.keyExample}</p>
+                          )}
                         </div>
                       </div>
                     ))}
