@@ -75,12 +75,11 @@ export const getApiKey = async (modelId: string): Promise<string | null> => {
     .from('user_api_keys')
     .select('api_key')
     .eq('user_id', user.id)
-    .eq('model_id', modelId)
-    .single();
+    .eq('model_id', modelId);
   
-  if (error || !data) return null;
+  if (error || !data || data.length === 0) return null;
   
-  return data.api_key;
+  return data[0].api_key;
 };
 
 // Save API key to user profile
