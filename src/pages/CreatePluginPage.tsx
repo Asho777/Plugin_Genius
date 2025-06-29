@@ -37,36 +37,30 @@ const CreatePluginPage = () => {
     },
     {
       role: 'assistant',
-      content: 'Hello! I\'m your xBesh AI assistant. I\'ll help you create a WordPress plugin. What kind of functionality would you like to build?'
+      content: 'Hello! I\'m your xBesh AI assistant. I\'ll help you create a WordPress plugin. What kind of functionality would you like to build? For example:\n\n• A contact form plugin\n• A custom post type for portfolios\n• An e-commerce integration\n• A social media widget\n• A custom dashboard widget\n\nJust describe what you want, and I\'ll generate the complete WordPress plugin code for you!'
     }
   ])
   const [userMessage, setUserMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [apiKeyMissing, setApiKeyMissing] = useState(false)
   const [terminalInput, setTerminalInput] = useState('')
-  // Pre-populate terminal output with static content instead of generating it dynamically
   const [terminalOutput, setTerminalOutput] = useState<string[]>([
-    '$ npm init -y',
-    'Wrote to package.json:',
-    '{',
-    `  "name": "${pluginName || 'my-custom-plugin'}",`,
-    '  "version": "1.0.0",',
-    '  "description": "",',
-    '  ...',
-    '}',
-    '$ npm install @wordpress/scripts --save-dev',
-    'Installing @wordpress/scripts...',
-    '+ @wordpress/scripts@25.0.0',
-    'added 1000 packages in 25s',
+    'WordPress Plugin Development Environment',
+    'Plugin Genius Terminal v1.0.0',
+    '=====================================',
+    '',
+    'Welcome to the WordPress Plugin Creator!',
+    'Type "help" for available commands.',
+    '',
     '$ _'
   ])
-  // Pre-populate code with static content instead of generating it dynamically
   const [code, setCode] = useState(`<?php
 /**
  * Plugin Name: ${pluginName || 'My Custom Plugin'}
  * Description: A custom WordPress plugin created with Plugin Genius
  * Version: 1.0.0
  * Author: Plugin Genius
+ * Text Domain: my-custom-plugin
  */
 
 // Exit if accessed directly
@@ -74,21 +68,85 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Register block
-function register_custom_block() {
-    // Register script
-    wp_register_script(
-        'custom-block-editor',
-        plugins_url('block.js', __FILE__),
-        array('wp-blocks', 'wp-element', 'wp-editor')
-    );
+// Plugin activation hook
+register_activation_hook(__FILE__, 'my_custom_plugin_activate');
 
-    // Register block
-    register_block_type('custom/block', array(
-        'editor_script' => 'custom-block-editor',
-    ));
+function my_custom_plugin_activate() {
+    // Activation code here
+    flush_rewrite_rules();
 }
-add_action('init', 'register_custom_block');`)
+
+// Plugin deactivation hook
+register_deactivation_hook(__FILE__, 'my_custom_plugin_deactivate');
+
+function my_custom_plugin_deactivate() {
+    // Deactivation code here
+    flush_rewrite_rules();
+}
+
+// Initialize the plugin
+add_action('init', 'my_custom_plugin_init');
+
+function my_custom_plugin_init() {
+    // Plugin initialization code here
+    
+    // Example: Add a simple shortcode
+    add_shortcode('my_custom_shortcode', 'my_custom_shortcode_handler');
+}
+
+// Shortcode handler function
+function my_custom_shortcode_handler($atts) {
+    $atts = shortcode_atts(array(
+        'text' => 'Hello World!',
+    ), $atts);
+    
+    return '<div class="my-custom-plugin-output">' . esc_html($atts['text']) . '</div>';
+}
+
+// Add admin menu
+add_action('admin_menu', 'my_custom_plugin_admin_menu');
+
+function my_custom_plugin_admin_menu() {
+    add_options_page(
+        'My Custom Plugin Settings',
+        'My Custom Plugin',
+        'manage_options',
+        'my-custom-plugin',
+        'my_custom_plugin_settings_page'
+    );
+}
+
+// Settings page callback
+function my_custom_plugin_settings_page() {
+    ?>
+    <div class="wrap">
+        <h1>My Custom Plugin Settings</h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('my_custom_plugin_settings');
+            do_settings_sections('my_custom_plugin_settings');
+            ?>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">Plugin Setting</th>
+                    <td>
+                        <input type="text" name="my_custom_plugin_setting" value="<?php echo esc_attr(get_option('my_custom_plugin_setting')); ?>" />
+                        <p class="description">Enter your plugin setting here.</p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button(); ?>
+        </form>
+    </div>
+    <?php
+}
+
+// Register settings
+add_action('admin_init', 'my_custom_plugin_admin_init');
+
+function my_custom_plugin_admin_init() {
+    register_setting('my_custom_plugin_settings', 'my_custom_plugin_setting');
+}`)
   const [copied, setCopied] = useState(false)
   const [formatting, setFormatting] = useState(false)
   const [previewMode, setPreviewMode] = useState('desktop')
@@ -235,12 +293,6 @@ add_action('init', 'register_custom_block');`)
     }
   }, []);
 
-  // REMOVED: Dynamic terminal output generation
-  // This was causing layout shifts after initial render
-  
-  // REMOVED: Dynamic code generation
-  // This was causing layout shifts after initial render
-  
   // Check if API key exists
   useEffect(() => {
     const checkApiKey = async () => {
@@ -364,15 +416,21 @@ add_action('init', 'register_custom_block');`)
       // Add to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ Format and transfer code from AI Chat',
-        'Code extracted, formatted, and transferred to the Code editor.'
+        '$ extract-code --from-ai-chat',
+        'Code extracted from AI response.',
+        'Formatting code...',
+        'Code formatted and transferred to Code editor.',
+        'Ready for testing and deployment.',
+        ''
       ]);
       
       // Switch to code tab
       setActiveTab('code');
       
-      // Log the code to console for debugging
-      console.log("Code transferred to editor:", formattedCode);
+      // Auto-execute the plugin to show preview
+      setTimeout(() => {
+        handleExecutePlugin();
+      }, 500);
       
       return true;
     } catch (error) {
@@ -381,8 +439,10 @@ add_action('init', 'register_custom_block');`)
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ Format and transfer code from AI Chat',
-        'Error formatting code. Using unformatted code instead.'
+        '$ extract-code --from-ai-chat',
+        'Error formatting code. Using unformatted code instead.',
+        'Code transferred to Code editor.',
+        ''
       ]);
       
       // Still update the code state with unformatted code
@@ -390,9 +450,6 @@ add_action('init', 'register_custom_block');`)
       
       // Switch to code tab
       setActiveTab('code');
-      
-      // Log the code to console for debugging
-      console.log("Unformatted code transferred to editor:", extractedCode);
       
       return false;
     }
@@ -410,7 +467,7 @@ add_action('init', 'register_custom_block');`)
     
     // Replace code blocks with a note
     let processedResponse = response.replace(/```[\w]*\s*([\s\S]*?)\s*```/g, 
-      '```\n[Code has been transferred to the Code tab]\n```');
+      '```\n[Code has been automatically transferred to the Code tab]\n```');
     
     // Replace inline PHP code
     processedResponse = processedResponse.replace(/<\?php[\s\S]*?\?>/g, 
@@ -418,7 +475,7 @@ add_action('init', 'register_custom_block');`)
     
     // Add a note at the end if it's not already there
     if (!processedResponse.includes('transferred to the Code tab')) {
-      processedResponse += '\n\n**Note:** All code has been transferred to the Code tab.';
+      processedResponse += '\n\n**✅ Code Transfer Complete:** All generated code has been automatically transferred to the Code tab and is ready for testing!';
     }
     
     return processedResponse;
@@ -494,8 +551,9 @@ add_action('init', 'register_custom_block');`)
     // If no code was found, add a message to the terminal
     setTerminalOutput(prev => [
       ...prev,
-      '$ Transfer code from message',
-      'No code found in the selected message.'
+      '$ transfer-code --from-message',
+      'No code found in the selected message.',
+      ''
     ]);
     
     return false;
@@ -514,7 +572,9 @@ add_action('init', 'register_custom_block');`)
         setTerminalOutput(prev => [
           ...prev, 
           'Executing PHP code...',
-          'PHP code executed successfully.'
+          'Checking syntax...',
+          'PHP code executed successfully.',
+          ''
         ]);
         
         // Execute plugin if it's a plugin execution command
@@ -527,8 +587,10 @@ add_action('init', 'register_custom_block');`)
           handleExecutePlugin();
           setTerminalOutput(prev => [
             ...prev,
-            `Plugin '${pluginName || 'my-custom-plugin'}' activated.`,
-            'Success: Activated 1 of 1 plugins.'
+            `Activating plugin '${pluginName || 'my-custom-plugin'}'...`,
+            'Plugin activated successfully.',
+            'Success: Activated 1 of 1 plugins.',
+            ''
           ]);
         } else if (command.includes('plugin install')) {
           setTerminalOutput(prev => [
@@ -537,12 +599,14 @@ add_action('init', 'register_custom_block');`)
             'Plugin installed successfully.',
             'Activating plugin...',
             `Plugin '${pluginName || 'my-custom-plugin'}' activated.`,
-            'Success: Installed and activated 1 of 1 plugins.'
+            'Success: Installed and activated 1 of 1 plugins.',
+            ''
           ]);
         } else {
           setTerminalOutput(prev => [
             ...prev,
-            'WordPress CLI command executed successfully.'
+            'WordPress CLI command executed successfully.',
+            ''
           ]);
         }
       } else if (command.startsWith('npm ') || command.startsWith('yarn ')) {
@@ -551,8 +615,10 @@ add_action('init', 'register_custom_block');`)
           setTerminalOutput(prev => [
             ...prev,
             'Installing packages...',
+            'Resolving dependencies...',
             'added 120 packages in 3.5s',
-            'Packages installed successfully.'
+            'Packages installed successfully.',
+            ''
           ]);
         } else if (command.includes('build')) {
           setTerminalOutput(prev => [
@@ -560,7 +626,8 @@ add_action('init', 'register_custom_block');`)
             'Building project...',
             'Creating an optimized production build...',
             'Compiled successfully.',
-            'Build complete.'
+            'Build complete.',
+            ''
           ]);
           handleBuildPlugin();
         } else if (command.includes('start') || command.includes('dev')) {
@@ -568,12 +635,14 @@ add_action('init', 'register_custom_block');`)
             ...prev,
             'Starting development server...',
             'Server running at http://localhost:3000',
-            'Ready for development.'
+            'Ready for development.',
+            ''
           ]);
         } else {
           setTerminalOutput(prev => [
             ...prev,
-            'npm command executed successfully.'
+            'npm command executed successfully.',
+            ''
           ]);
         }
       } else if (command.startsWith('zip ')) {
@@ -581,7 +650,7 @@ add_action('init', 'register_custom_block');`)
         handleBuildPlugin();
       } else if (command === 'clear' || command === 'cls') {
         // Clear terminal
-        setTerminalOutput(['Terminal cleared.']);
+        setTerminalOutput(['Terminal cleared.', '']);
       } else if (command === 'extract-code' || command === 'get-code') {
         // Extract code from the last AI message
         const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
@@ -590,7 +659,8 @@ add_action('init', 'register_custom_block');`)
         } else {
           setTerminalOutput(prev => [
             ...prev,
-            'No AI messages found to extract code from.'
+            'No AI messages found to extract code from.',
+            ''
           ]);
         }
       } else if (command === 'show-code') {
@@ -600,7 +670,8 @@ add_action('init', 'register_custom_block');`)
           'Current code in editor:',
           '---',
           code,
-          '---'
+          '---',
+          ''
         ]);
       } else if (command === 'execute' || command === 'run') {
         // Execute the plugin
@@ -616,26 +687,38 @@ add_action('init', 'register_custom_block');`)
         setTerminalOutput(prev => [
           ...prev,
           'Available commands:',
-          '  php <file.php>         - Execute PHP code',
+          '',
+          'WordPress Commands:',
           '  wp plugin activate     - Activate WordPress plugin',
           '  wp plugin install      - Install WordPress plugin',
+          '',
+          'Development Commands:',
+          '  php <file.php>         - Execute PHP code',
           '  npm install <package>  - Install npm package',
           '  npm build              - Build project',
           '  npm start              - Start development server',
-          '  zip <filename>         - Create zip archive',
-          '  clear, cls             - Clear terminal',
+          '',
+          'Plugin Commands:',
+          '  execute, run           - Execute/test plugin',
+          '  build                  - Build plugin for distribution',
+          '  save                   - Save plugin to library',
+          '',
+          'Code Commands:',
           '  extract-code, get-code - Extract code from AI message',
           '  show-code              - Show current code',
-          '  execute, run           - Execute plugin',
-          '  build                  - Build plugin',
-          '  save                   - Save plugin',
-          '  help                   - Show this help'
+          '',
+          'Utility Commands:',
+          '  clear, cls             - Clear terminal',
+          '  ls, dir                - List files',
+          '  help                   - Show this help',
+          ''
         ]);
       } else if (command === 'ls' || command === 'dir') {
         // List files
         setTerminalOutput(prev => [
           ...prev,
           'Directory listing:',
+          '',
           `${pluginName || 'my-custom-plugin'}/`,
           `├── ${pluginName || 'my-custom-plugin'}.php`,
           '├── assets/',
@@ -645,7 +728,10 @@ add_action('init', 'register_custom_block');`)
           '│       └── script.js',
           '├── includes/',
           '│   └── functions.php',
-          '└── readme.txt'
+          '├── languages/',
+          '│   └── my-custom-plugin.pot',
+          '└── readme.txt',
+          ''
         ]);
       } else if (command === 'cat' && command.includes('.php')) {
         // Show file content
@@ -654,13 +740,27 @@ add_action('init', 'register_custom_block');`)
           'File content:',
           '---',
           code,
-          '---'
+          '---',
+          ''
+        ]);
+      } else if (command === 'status') {
+        // Show plugin status
+        setTerminalOutput(prev => [
+          ...prev,
+          'Plugin Status:',
+          `Name: ${pluginName || 'My Custom Plugin'}`,
+          `Status: ${pluginExecution?.success ? 'Active' : 'Inactive'}`,
+          `Code Lines: ${code.split('\n').length}`,
+          `Last Modified: ${new Date().toLocaleString()}`,
+          ''
         ]);
       } else {
         // Generic response
         setTerminalOutput(prev => [
           ...prev,
-          `Command executed: ${command}`
+          `Command executed: ${command}`,
+          'Type "help" for available commands.',
+          ''
         ]);
       }
       
@@ -673,6 +773,14 @@ add_action('init', 'register_custom_block');`)
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    
+    // Add to terminal output
+    setTerminalOutput(prev => [
+      ...prev,
+      '$ copy-code',
+      'Code copied to clipboard.',
+      ''
+    ]);
   };
   
   // Handle format code
@@ -689,8 +797,9 @@ add_action('init', 'register_custom_block');`)
       // Add to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ Format code',
-        'Code formatted successfully.'
+        '$ format-code',
+        'Code formatted successfully.',
+        ''
       ]);
     } catch (error) {
       console.error('Error formatting code:', error);
@@ -698,8 +807,9 @@ add_action('init', 'register_custom_block');`)
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ Format code',
-        'Error formatting code. Please try again.'
+        '$ format-code',
+        'Error formatting code. Please try again.',
+        ''
       ]);
     } finally {
       setFormatting(false);
@@ -709,7 +819,12 @@ add_action('init', 'register_custom_block');`)
   // Handle save plugin
   const handleSavePlugin = () => {
     if (!pluginName) {
-      alert('Please enter a plugin name before saving.');
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ save-plugin',
+        'Error: Please enter a plugin name before saving.',
+        ''
+      ]);
       return;
     }
     
@@ -726,14 +841,20 @@ add_action('init', 'register_custom_block');`)
       // Add to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        `$ Save plugin "${pluginName}"`,
-        'Plugin saved successfully to your library.'
+        `$ save-plugin "${pluginName}"`,
+        'Plugin saved successfully to your library.',
+        'You can find it in the "My Plugins" section.',
+        ''
       ]);
       
-      alert('Plugin saved successfully!');
     } catch (error) {
       console.error('Error saving plugin:', error);
-      alert('Error saving plugin. Please try again.');
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ save-plugin',
+        'Error saving plugin. Please try again.',
+        ''
+      ]);
     }
   };
   
@@ -755,14 +876,16 @@ add_action('init', 'register_custom_block');`)
       // Add execution result to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        `$ php -l plugin.php`,
+        `$ execute-plugin "${pluginName || 'my-custom-plugin'}"`,
+        'Analyzing plugin code...',
+        'Checking WordPress compatibility...',
         result.success 
-          ? 'No syntax errors detected in plugin.php' 
-          : `PHP Parse error: ${result.errors} in plugin.php`,
-        `$ wp plugin activate ${pluginName || 'my-custom-plugin'}`,
+          ? '✅ Plugin executed successfully!' 
+          : `❌ Plugin execution failed: ${result.errors}`,
         result.success 
-          ? `Plugin '${pluginName || 'my-custom-plugin'}' activated.` 
-          : `Error: ${result.errors}`
+          ? 'Plugin is ready for activation.' 
+          : 'Please fix the errors and try again.',
+        ''
       ]);
       
     } catch (error) {
@@ -777,8 +900,9 @@ add_action('init', 'register_custom_block');`)
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ Execute plugin',
-        'Error executing plugin. Please check your code and try again.'
+        '$ execute-plugin',
+        'Error executing plugin. Please check your code and try again.',
+        ''
       ]);
     } finally {
       setIsExecuting(false);
@@ -790,7 +914,12 @@ add_action('init', 'register_custom_block');`)
     if (!code.trim() || isBuilding) return;
     
     if (!pluginName) {
-      alert('Please enter a plugin name before building.');
+      setTerminalOutput(prev => [
+        ...prev,
+        '$ build-plugin',
+        'Error: Please enter a plugin name before building.',
+        ''
+      ]);
       return;
     }
     
@@ -811,37 +940,19 @@ add_action('init', 'register_custom_block');`)
       // Add build result to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        `$ zip -r ${result.filename || 'plugin.zip'} .`,
+        `$ build-plugin "${pluginName}"`,
+        'Creating plugin structure...',
+        'Generating assets...',
+        'Creating readme.txt...',
+        'Compressing files...',
         result.success 
-          ? `  adding: ${pluginName || 'my-custom-plugin'}/` 
-          : `Error: ${result.error}`,
+          ? `✅ Plugin built successfully: ${result.filename}` 
+          : `❌ Build failed: ${result.error}`,
         result.success 
-          ? `  adding: ${pluginName || 'my-custom-plugin'}/${pluginName || 'my-custom-plugin'}.php` 
-          : '',
-        result.success 
-          ? `  adding: ${pluginName || 'my-custom-plugin'}/readme.txt` 
-          : '',
-        result.success 
-          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/` 
-          : '',
-        result.success 
-          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/css/` 
-          : '',
-        result.success 
-          ? `  adding: ${pluginName || 'my-custom-plugin'}/assets/js/` 
-          : '',
-        result.success 
-          ? `Successfully created ${result.filename}` 
-          : ''
+          ? 'Plugin zip file has been downloaded.' 
+          : 'Please fix the errors and try again.',
+        ''
       ]);
-      
-      if (result.success) {
-        // Add download notification to terminal
-        setTerminalOutput(prev => [
-          ...prev,
-          `Plugin zip file "${result.filename}" has been downloaded to your computer.`
-        ]);
-      }
       
     } catch (error) {
       console.error('Error building plugin:', error);
@@ -855,8 +966,9 @@ add_action('init', 'register_custom_block');`)
       // Add error to terminal output
       setTerminalOutput(prev => [
         ...prev,
-        '$ Build plugin',
-        'Error building plugin. Please try again.'
+        '$ build-plugin',
+        'Error building plugin. Please try again.',
+        ''
       ]);
     } finally {
       setIsBuilding(false);
@@ -906,7 +1018,7 @@ add_action('init', 'register_custom_block');`)
       setCode(updatedCode);
     }
   }, [pluginName]);
-  
+
   return (
     <div className="create-plugin-page" ref={pageRef}>
       <div className="create-plugin-navbar">
@@ -1095,7 +1207,7 @@ add_action('init', 'register_custom_block');`)
                       >
                         <textarea 
                           className="chat-input" 
-                          placeholder="Type your message here..."
+                          placeholder="Describe the WordPress plugin you want to create..."
                           value={userMessage}
                           onChange={(e) => setUserMessage(e.target.value)}
                           onKeyDown={(e) => {
@@ -1189,7 +1301,7 @@ add_action('init', 'register_custom_block');`)
               <div className="preview-panel">
                 <div className="preview-header">
                   <h3 className="preview-title">
-                    <FiEye /> Preview
+                    <FiEye /> Live Preview
                   </h3>
                   <div className="preview-controls">
                     <button 
@@ -1259,8 +1371,8 @@ add_action('init', 'register_custom_block');`)
                         {pluginExecution && (
                           <div className={`wp-preview-status ${pluginExecution.success ? 'success' : 'error'}`}>
                             {pluginExecution.success 
-                              ? `Plugin "${pluginName || 'My Custom Plugin'}" activated successfully.` 
-                              : `Error: ${pluginExecution.errors}`}
+                              ? `✅ Plugin "${pluginName || 'My Custom Plugin'}" activated successfully!` 
+                              : `❌ Error: ${pluginExecution.errors}`}
                           </div>
                         )}
                         
