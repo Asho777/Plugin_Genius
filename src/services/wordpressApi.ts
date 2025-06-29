@@ -52,70 +52,80 @@ const decodeHtmlEntities = (text: string): string => {
 // Function to fetch WordPress plugins from the official API
 export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Plugin[]> => {
   try {
-    console.log('Fetching plugins from WordPress API...')
+    console.log(`Fetching plugins from WordPress API with search term: "${searchTerm}"`)
     
-    // Create base request parameters
-    const baseRequestObj: any = {
-      per_page: 24, // WordPress API limit is 24 per request
-      fields: {
-        description: true,
-        sections: false,
-        tested: true,
-        requires: true,
-        rating: true,
-        ratings: true,
-        downloaded: true,
-        download_link: true,
-        last_updated: true,
-        homepage: true,
-        tags: true,
-        icons: true,
-      }
-    }
-    
-    // Handle search differently based on whether a search term is provided
-    if (searchTerm.trim()) {
-      // For search queries, use the direct search parameter
-      baseRequestObj.search = searchTerm.trim()
-    } else {
-      // If no search term, show popular plugins
-      baseRequestObj.browse = 'popular'
-    }
-    
-    // Function to make a single API request
+    // Function to make a single API request with proper search handling
     const makeRequest = async (page: number = 1) => {
-      const requestObj = { ...baseRequestObj, page }
+      // Create request parameters based on search term
+      const requestObj: any = {
+        per_page: 24, // WordPress API limit is 24 per request
+        page: page,
+        fields: {
+          description: true,
+          sections: false,
+          tested: true,
+          requires: true,
+          rating: true,
+          ratings: true,
+          downloaded: true,
+          download_link: true,
+          last_updated: true,
+          homepage: true,
+          tags: true,
+          icons: true,
+        }
+      }
+      
+      // Handle search vs browse differently
+      if (searchTerm.trim()) {
+        // For search queries, use the search parameter
+        requestObj.search = searchTerm.trim()
+        console.log(`Making search request for "${searchTerm.trim()}" on page ${page}`)
+      } else {
+        // If no search term, show popular plugins
+        requestObj.browse = 'popular'
+        console.log(`Making browse request for popular plugins on page ${page}`)
+      }
+      
       const params = new URLSearchParams({
         action: 'query_plugins',
         request: JSON.stringify(requestObj)
       })
 
+      console.log(`API URL: ${WP_API_URL}?${params.toString()}`)
+      
       const response = await fetch(`${WP_API_URL}?${params.toString()}`)
       
       if (!response.ok) {
-        throw new Error(`WordPress API error: ${response.status}`)
+        throw new Error(`WordPress API error: ${response.status} ${response.statusText}`)
       }
 
-      return await response.json() as WordPressApiResponse
+      const data = await response.json() as WordPressApiResponse
+      console.log(`Page ${page} returned ${data.plugins.length} plugins, total pages available: ${data.info.pages}, total results: ${data.info.results}`)
+      
+      return data
     }
 
-    // Make the first request
-    console.log('Making first API request (page 1)...')
-    const firstPageData = await makeRequest(1)
-    console.log(`First page returned ${firstPageData.plugins.length} plugins`)
+    // Start with an empty array and track unique plugins
+    let allPlugins: any[] = []
+    const uniqueSlugs = new Set<string>()
+    let currentPage = 1
+    const maxPages = 3 // Limit to 3 pages to get around 72 plugins max
     
-    let allPlugins = [...firstPageData.plugins]
-    const uniqueSlugs = new Set(firstPageData.plugins.map(p => p.slug))
-    
-    // If we got plugins and need more to reach 48, make a second request
-    if (firstPageData.plugins.length > 0 && allPlugins.length < 48) {
+    // Keep fetching pages until we have enough plugins or run out of pages
+    while (allPlugins.length < 48 && currentPage <= maxPages) {
       try {
-        console.log('Making second API request (page 2)...')
-        const secondPageData = await makeRequest(2)
-        console.log(`Second page returned ${secondPageData.plugins.length} plugins`)
+        console.log(`Fetching page ${currentPage}...`)
+        const pageData = await makeRequest(currentPage)
         
-        // Add unique plugins from second page
-        const uniqueSecondPagePlugins = secondPageData.plugins.filter(plugin => {
+        // If no plugins returned, we've reached the end
+        if (pageData.plugins.length === 0) {
+          console.log(`No plugins returned on page ${currentPage}, stopping`)
+          break
+        }
+        
+        // Add unique plugins from this page
+        const uniquePluginsFromPage = pageData.plugins.filter(plugin => {
           if (uniqueSlugs.has(plugin.slug)) {
             return false
           }
@@ -123,37 +133,46 @@ export const fetchWordPressPlugins = async (searchTerm: string = ''): Promise<Pl
           return true
         })
         
-        allPlugins = [...allPlugins, ...uniqueSecondPagePlugins]
-        console.log(`Added ${uniqueSecondPagePlugins.length} unique plugins from second page`)
+        allPlugins = [...allPlugins, ...uniquePluginsFromPage]
+        console.log(`Added ${uniquePluginsFromPage.length} unique plugins from page ${currentPage}. Total: ${allPlugins.length}`)
         
-        // If we still need more and there might be a third page, try it
-        if (allPlugins.length < 48 && secondPageData.plugins.length === 24) {
-          try {
-            console.log('Making third API request (page 3)...')
-            const thirdPageData = await makeRequest(3)
-            console.log(`Third page returned ${thirdPageData.plugins.length} plugins`)
-            
-            // Add unique plugins from third page
-            const uniqueThirdPagePlugins = thirdPageData.plugins.filter(plugin => {
-              if (uniqueSlugs.has(plugin.slug)) {
-                return false
-              }
-              uniqueSlugs.add(plugin.slug)
-              return true
-            })
-            
-            allPlugins = [...allPlugins, ...uniqueThirdPagePlugins]
-            console.log(`Added ${uniqueThirdPagePlugins.length} unique plugins from third page`)
-          } catch (error) {
-            console.log('Third request failed, using first two pages only')
-          }
+        // If this page returned fewer than 24 plugins, it's likely the last page
+        if (pageData.plugins.length < 24) {
+          console.log(`Page ${currentPage} returned fewer than 24 plugins, likely the last page`)
+          break
         }
+        
+        // If we've reached the total available pages, stop
+        if (currentPage >= pageData.info.pages) {
+          console.log(`Reached maximum available pages (${pageData.info.pages})`)
+          break
+        }
+        
+        currentPage++
+        
+        // Add a small delay between requests to be respectful to the API
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
       } catch (error) {
-        console.log('Second request failed, using first page only')
+        console.error(`Error fetching page ${currentPage}:`, error)
+        // If we have some plugins already, continue with what we have
+        if (allPlugins.length > 0) {
+          console.log(`Continuing with ${allPlugins.length} plugins from previous pages`)
+          break
+        } else {
+          // If we don't have any plugins yet, re-throw the error
+          throw error
+        }
       }
     }
     
-    console.log(`Total unique plugins collected: ${allPlugins.length}`)
+    console.log(`Final result: ${allPlugins.length} unique plugins collected`)
+    
+    // If we still don't have many plugins and we used a search term, 
+    // the search might be too specific - let's inform about this
+    if (searchTerm.trim() && allPlugins.length < 10) {
+      console.log(`Search for "${searchTerm}" returned only ${allPlugins.length} plugins - search might be too specific`)
+    }
     
     // Transform the WordPress API response to our Plugin interface
     const transformedPlugins = allPlugins.map(plugin => {
