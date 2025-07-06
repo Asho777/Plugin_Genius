@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
+import { SearchProvider } from './context/SearchContext'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -23,7 +24,7 @@ if (typeof window !== 'undefined') {
   document.body.scrollTop = 0;
 }
 
-function App() {
+function AppContent() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const location = useLocation()
@@ -126,6 +127,14 @@ function App() {
       <Route path="/profile" element={session ? <ProfilePage /> : <Navigate to="/" />} />
       <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/" />} />
     </Routes>
+  )
+}
+
+function App() {
+  return (
+    <SearchProvider>
+      <AppContent />
+    </SearchProvider>
   )
 }
 

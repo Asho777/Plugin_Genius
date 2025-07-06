@@ -6,6 +6,7 @@ import Footer from '../components/layout/Footer'
 import PluginCard from '../components/templates/PluginCard'
 import PluginDetailModal from '../components/templates/PluginDetailModal'
 import { fetchWordPressPlugins } from '../services/wordpressApi'
+import { useSearch } from '../context/SearchContext'
 import '../styles/templates.css'
 
 export interface Plugin {
@@ -22,11 +23,8 @@ export interface Plugin {
 }
 
 const TemplatesPage = () => {
-  const [plugins, setPlugins] = useState<Plugin[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { searchState, setSearchResults, setLoading, setError } = useSearch()
   const [searchTerm, setSearchTerm] = useState('')
-  const [currentSearchTerm, setCurrentSearchTerm] = useState('')
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
@@ -47,16 +45,19 @@ const TemplatesPage = () => {
     { id: 'performance', name: 'Performance' }
   ]
 
+  // Initialize search term from context when component mounts
+  useEffect(() => {
+    if (searchState.searchTerm) {
+      setSearchTerm(searchState.searchTerm)
+    }
+  }, [searchState.searchTerm])
+
   // Function to search for plugins
   const searchPlugins = async (term: string, applyFilters = false) => {
     try {
       setLoading(true)
       setError(null)
-      setCurrentSearchTerm(term) // Store the current search term
       setUseFilters(applyFilters) // Store whether to use filters
-      
-      // Clear existing plugins first
-      setPlugins([])
       
       // Fetch plugins from WordPress API
       const results = await fetchWordPressPlugins(term)
@@ -64,8 +65,9 @@ const TemplatesPage = () => {
       // Check if results are relevant to the search term
       if (term && results.length === 0) {
         setError(`No plugins found for "${term}". Try a different search term.`)
+        setSearchResults([], term)
       } else {
-        setPlugins(results)
+        setSearchResults(results, term)
       }
     } catch (err) {
       setError('Failed to load plugins. Please try again later.')
@@ -75,19 +77,21 @@ const TemplatesPage = () => {
     }
   }
   
-  // Initial load - fetch popular plugins
+  // Initial load - only if no previous search results exist
   useEffect(() => {
-    searchPlugins('')
-  }, [])
+    if (!searchState.hasSearched) {
+      searchPlugins('')
+    }
+  }, [searchState.hasSearched])
   
   // Apply filters to the plugins
   const filteredPlugins = React.useMemo(() => {
     // If we're not using filters, return all plugins
     if (!useFilters) {
-      return plugins
+      return searchState.plugins
     }
     
-    let results = [...plugins]
+    let results = [...searchState.plugins]
     
     // Apply category filter
     if (filters.category !== 'all') {
@@ -117,7 +121,7 @@ const TemplatesPage = () => {
     }
     
     return results
-  }, [plugins, filters, useFilters])
+  }, [searchState.plugins, filters, useFilters])
   
   // Handle search input change
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,7 +307,7 @@ const TemplatesPage = () => {
         
         <section className="templates-results">
           <div className="container">
-            {loading ? (
+            {searchState.isLoading ? (
               <div className="loading-container">
                 <div className="loading-spinner">
                   <motion.div 
@@ -318,10 +322,10 @@ const TemplatesPage = () => {
                 </div>
                 <p>Loading plugins...</p>
               </div>
-            ) : error ? (
+            ) : searchState.error ? (
               <div className="error-container">
                 <FiInfo className="error-icon" />
-                <p>{error}</p>
+                <p>{searchState.error}</p>
                 <button className="retry-button" onClick={() => searchPlugins(searchTerm, useFilters)}>
                   Try Again
                 </button>
@@ -339,8 +343,8 @@ const TemplatesPage = () => {
                 <div className="results-header">
                   <p className="results-count">
                     Showing <span>{filteredPlugins.length}</span> plugins
-                    {currentSearchTerm && <span className="search-term"> for "{currentSearchTerm}"</span>}
-                    {!currentSearchTerm && <span className="search-term"> (popular plugins)</span>}
+                    {searchState.searchTerm && <span className="search-term"> for "{searchState.searchTerm}"</span>}
+                    {!searchState.searchTerm && <span className="search-term"> (popular plugins)</span>}
                     {useFilters && <span className="filter-indicator"> with filters applied</span>}
                   </p>
                 </div>
