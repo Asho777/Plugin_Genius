@@ -1,4 +1,4 @@
-/* WordPress Plugin Preview Styles - Enhanced */
+/* WordPress Plugin Preview Styles */
 .wp-preview-container {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   color: #333;
@@ -12,88 +12,21 @@
 
 .wp-preview-header {
   background-color: #fff;
-  padding: 20px;
+  padding: 15px 20px;
   border-bottom: 1px solid #ddd;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.wp-preview-plugin-icon {
-  width: 60px;
-  height: 60px;
-  background-color: #f0f0f0;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #ddd;
-}
-
-.plugin-icon-placeholder {
-  font-size: 24px;
-}
-
-.wp-preview-header-content {
-  flex: 1;
 }
 
 .wp-preview-header h2 {
   margin: 0 0 5px 0;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 600;
   color: #23282d;
 }
 
 .wp-preview-description {
-  margin: 0 0 8px 0;
+  margin: 0;
   color: #666;
   font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.wp-preview-meta {
-  display: flex;
-  gap: 15px;
-  font-size: 0.85rem;
-  color: #999;
-}
-
-.wp-preview-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.wp-preview-button {
-  padding: 8px 16px;
-  border-radius: 3px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid;
-  transition: all 0.2s ease;
-}
-
-.wp-preview-button.primary {
-  background-color: #0073aa;
-  color: #fff;
-  border-color: #0073aa;
-}
-
-.wp-preview-button.primary:hover {
-  background-color: #005a87;
-  border-color: #005a87;
-}
-
-.wp-preview-button.secondary {
-  background-color: #f7f7f7;
-  color: #555;
-  border-color: #ccc;
-}
-
-.wp-preview-button.secondary:hover {
-  background-color: #fafafa;
-  border-color: #999;
 }
 
 .wp-preview-content {
@@ -112,24 +45,21 @@
 
 .wp-preview-section h3 {
   margin: 0;
-  padding: 15px 20px;
+  padding: 12px 15px;
   background-color: #f7f7f7;
   border-bottom: 1px solid #ddd;
   font-size: 1.1rem;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* Shortcodes */
 .wp-preview-shortcodes {
-  padding: 20px;
+  padding: 15px;
 }
 
 .wp-preview-shortcode {
-  margin-bottom: 20px;
-  padding-bottom: 20px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
   border-bottom: 1px solid #eee;
 }
 
@@ -144,32 +74,25 @@
   background-color: #f0f0f0;
   border: 1px solid #ddd;
   border-radius: 3px;
-  padding: 6px 12px;
+  padding: 5px 10px;
   font-family: monospace;
-  margin-bottom: 12px;
-  font-size: 0.9rem;
+  margin-bottom: 10px;
 }
 
 .wp-preview-shortcode-output {
   background-color: #f9f9f9;
   border: 1px solid #eee;
-  padding: 15px;
+  padding: 10px;
   border-radius: 3px;
-}
-
-.shortcode-demo h4 {
-  margin: 0 0 10px 0;
-  font-size: 1rem;
-  color: #23282d;
 }
 
 /* Custom Post Types */
 .wp-preview-cpt {
-  padding: 20px;
+  padding: 15px;
 }
 
 .wp-preview-cpt-item {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .wp-preview-cpt-item:last-child {
@@ -177,53 +100,43 @@
 }
 
 .wp-preview-cpt-item h4 {
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
+  margin: 0 0 10px 0;
+  font-size: 1rem;
   color: #23282d;
-  font-weight: 600;
 }
 
 .wp-preview-cpt-posts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 15px;
 }
 
 .wp-preview-post {
   background-color: #f9f9f9;
   border: 1px solid #eee;
-  padding: 15px;
+  padding: 10px;
   border-radius: 3px;
 }
 
 .wp-preview-post h5 {
-  margin: 0 0 8px 0;
-  font-size: 1rem;
+  margin: 0 0 5px 0;
+  font-size: 0.9rem;
   color: #23282d;
-  font-weight: 600;
 }
 
 .wp-preview-post p {
-  margin: 0 0 10px 0;
-  font-size: 0.9rem;
+  margin: 0;
+  font-size: 0.85rem;
   color: #666;
-  line-height: 1.4;
-}
-
-.post-meta {
-  display: flex;
-  gap: 15px;
-  font-size: 0.8rem;
-  color: #999;
 }
 
 /* Admin Pages */
 .wp-preview-admin-pages {
-  padding: 20px;
+  padding: 15px;
 }
 
 .wp-preview-admin-page {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .wp-preview-admin-page:last-child {
@@ -231,58 +144,61 @@
 }
 
 .wp-preview-admin-page h4 {
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
+  margin: 0 0 10px 0;
+  font-size: 1rem;
   color: #23282d;
-  font-weight: 600;
 }
 
 .wp-preview-admin-content {
   background-color: #f9f9f9;
   border: 1px solid #eee;
-  padding: 20px;
+  padding: 15px;
   border-radius: 3px;
 }
 
 .wp-preview-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 .wp-preview-form-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .wp-preview-form-field label {
   font-weight: 500;
   font-size: 0.9rem;
-  color: #23282d;
 }
 
 .wp-preview-form-field input,
 .wp-preview-form-field select {
-  padding: 8px 12px;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 3px;
   background-color: #fff;
-  font-size: 0.9rem;
 }
 
-.wp-preview-form-field input[type="checkbox"] {
-  width: auto;
-  margin-right: 8px;
+.wp-preview-button {
+  background-color: #0073aa;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  align-self: flex-start;
 }
 
 /* Blocks */
 .wp-preview-blocks {
-  padding: 20px;
+  padding: 15px;
 }
 
 .wp-preview-block {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .wp-preview-block:last-child {
@@ -290,97 +206,17 @@
 }
 
 .wp-preview-block h4 {
-  margin: 0 0 15px 0;
-  font-size: 1.1rem;
+  margin: 0 0 10px 0;
+  font-size: 1rem;
   color: #23282d;
-  font-weight: 600;
 }
 
 .wp-preview-block-content {
   background-color: #f9f9f9;
   border: 1px solid #eee;
-  padding: 20px;
-  border-radius: 3px;
-}
-
-.block-preview {
-  text-align: center;
-}
-
-.block-controls {
-  margin-top: 15px;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.block-control {
-  padding: 6px 12px;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.block-control:hover {
-  background-color: #e0e0e0;
-}
-
-/* REST API */
-.wp-preview-rest {
-  padding: 20px;
-}
-
-.wp-preview-endpoint {
-  margin-bottom: 15px;
   padding: 15px;
-  background-color: #f9f9f9;
-  border: 1px solid #eee;
   border-radius: 3px;
-}
-
-.wp-preview-endpoint code {
-  background-color: #23282d;
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 0.9rem;
-}
-
-.wp-preview-endpoint p {
-  margin: 8px 0 0 0;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-/* Hooks */
-.wp-preview-hooks {
-  padding: 20px;
-}
-
-.hooks-summary {
-  display: flex;
-  gap: 30px;
-  margin-bottom: 15px;
-}
-
-.hook-count {
   text-align: center;
-}
-
-.hook-count .count {
-  display: block;
-  font-size: 2rem;
-  font-weight: bold;
-  color: #0073aa;
-}
-
-.hook-count .label {
-  display: block;
-  font-size: 0.9rem;
-  color: #666;
 }
 
 /* Placeholder for visual elements */
@@ -395,7 +231,7 @@
 /* Plugin execution status */
 .wp-preview-status {
   margin-top: 20px;
-  padding: 15px 20px;
+  padding: 10px 15px;
   border-radius: 3px;
   font-size: 0.9rem;
 }
@@ -418,34 +254,38 @@
   background-color: #23282d;
   color: #eee;
   font-family: monospace;
-  padding: 20px;
+  padding: 15px;
   border-radius: 3px;
   font-size: 0.85rem;
   white-space: pre-wrap;
-  max-height: 300px;
+  max-height: 200px;
   overflow-y: auto;
-  line-height: 1.4;
+}
+
+/* WordPress admin menu simulation */
+.wp-preview-admin-menu {
+  background-color: #23282d;
+  color: #eee;
+  width: 200px;
+  padding: 10px 0;
+}
+
+.wp-preview-menu-item {
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+.wp-preview-menu-item:hover {
+  background-color: #32373c;
+}
+
+.wp-preview-menu-item.active {
+  background-color: #0073aa;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .wp-preview-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-  
-  .wp-preview-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
   .wp-preview-cpt-posts {
     grid-template-columns: 1fr;
-  }
-  
-  .hooks-summary {
-    flex-direction: column;
-    gap: 15px;
   }
 }

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FiMenu, FiX, FiUser, FiSettings, FiLogOut, FiChevronDown } from 'react-icons/fi'
 import { supabase, handleLogout } from '../../lib/supabase'
 import Logo from '../common/Logo'
+import AvatarImage from '../common/AvatarImage'
 import '../../styles/navbar.css'
 
 const Navbar = () => {
@@ -24,7 +25,7 @@ const Navbar = () => {
       if (user) {
         console.log('Fetching profile for user:', user.id)
         
-        // Get user profile from user_profiles table (not profiles)
+        // Get user profile from user_profiles table
         const { data, error } = await supabase
           .from('user_profiles')
           .select('full_name, avatar_url, email, company')
@@ -34,17 +35,7 @@ const Navbar = () => {
         if (data && !error) {
           console.log('Successfully fetched user profile:', data)
           setUserName(data.full_name || user.email?.split('@')[0])
-          
-          // Add timestamp to prevent caching
-          if (data.avatar_url) {
-            const timestamp = new Date().getTime()
-            const avatarWithTimestamp = `${data.avatar_url}?t=${timestamp}`
-            console.log('Setting avatar with timestamp:', avatarWithTimestamp)
-            setUserAvatar(avatarWithTimestamp)
-          } else {
-            console.log('No avatar URL found in profile')
-            setUserAvatar(null)
-          }
+          setUserAvatar(data.avatar_url)
         } else {
           console.error('Error fetching profile from user_profiles:', error)
           // Fallback to user email
@@ -167,37 +158,13 @@ const Navbar = () => {
           <div className="profile-menu-container" ref={profileMenuRef}>
             <button className="profile-button" onClick={toggleProfileMenu}>
               <div className="avatar">
-                {userAvatar ? (
-                  <img 
-                    key={`avatar-${forceUpdate}`}
-                    src={userAvatar} 
-                    alt="User avatar" 
-                    className="avatar-image" 
-                    onError={(e) => {
-                      console.error('Avatar image failed to load:', userAvatar)
-                      const target = e.target as HTMLImageElement
-                      target.style.display = 'none'
-                      // Show fallback
-                      const parent = target.parentElement
-                      if (parent) {
-                        // Remove any existing fallback first
-                        const existingFallback = parent.querySelector('.avatar-placeholder')
-                        if (existingFallback) {
-                          parent.removeChild(existingFallback)
-                        }
-                        
-                        const fallback = document.createElement('div')
-                        fallback.className = 'avatar-placeholder'
-                        fallback.textContent = userName?.charAt(0).toUpperCase() || 'U'
-                        parent.appendChild(fallback)
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {userName?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                )}
+                <AvatarImage
+                  key={`avatar-${forceUpdate}`}
+                  src={userAvatar}
+                  alt="User avatar"
+                  fallbackText={userName?.charAt(0) || 'U'}
+                  className="navbar-avatar"
+                />
               </div>
               <span className="username">{userName}</span>
               <FiChevronDown className={`dropdown-icon ${profileMenuOpen ? 'open' : ''}`} />

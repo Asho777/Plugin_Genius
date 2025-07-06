@@ -5,7 +5,7 @@ import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import PluginCard from '../components/templates/PluginCard'
 import PluginDetailModal from '../components/templates/PluginDetailModal'
-import { fetchWordPressPlugins, PaginatedPluginResponse } from '../services/wordpressApi'
+import { fetchWordPressPlugins } from '../services/wordpressApi'
 import '../styles/templates.css'
 
 export interface Plugin {
@@ -22,14 +22,13 @@ export interface Plugin {
 }
 
 const TemplatesPage = () => {
-  const [paginatedData, setPaginatedData] = useState<PaginatedPluginResponse | null>(null)
+  const [plugins, setPlugins] = useState<Plugin[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentSearchTerm, setCurrentSearchTerm] = useState('')
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [isUsingFallback, setIsUsingFallback] = useState(false)
   const [filters, setFilters] = useState({
     category: 'all',
     minRating: 0,
@@ -57,31 +56,20 @@ const TemplatesPage = () => {
       setUseFilters(applyFilters) // Store whether to use filters
       
       // Clear existing plugins first
-      setPaginatedData(null)
+      setPlugins([])
       
       // Fetch plugins from WordPress API
       const results = await fetchWordPressPlugins(term)
       
       // Check if results are relevant to the search term
-      if (term && results.plugins.length === 0) {
+      if (term && results.length === 0) {
         setError(`No plugins found for "${term}". Try a different search term.`)
       } else {
-        setPaginatedData(results)
-        setIsUsingFallback(false)
+        setPlugins(results)
       }
-    } catch (err: any) {
+    } catch (err) {
+      setError('Failed to load plugins. Please try again later.')
       console.error('Error loading plugins:', err)
-      
-      // Use the specific error message from the service
-      const errorMessage = err?.message || 'Failed to load plugins. Please try again later.'
-      setError(errorMessage)
-      
-      // Check if this is a CORS/network error and we should show fallback data
-      if (errorMessage.includes('network restrictions') || errorMessage.includes('Unable to connect')) {
-        setIsUsingFallback(true)
-        // You could optionally load mock data here as a fallback
-        // For now, we'll just show the error message
-      }
     } finally {
       setLoading(false)
     }
@@ -92,14 +80,14 @@ const TemplatesPage = () => {
     searchPlugins('')
   }, [])
   
-  // Apply filters to the plugins (client-side filtering)
+  // Apply filters to the plugins
   const filteredPlugins = React.useMemo(() => {
-    // If we're not using filters or don't have data, return all plugins
-    if (!useFilters || !paginatedData) {
-      return paginatedData?.plugins || []
+    // If we're not using filters, return all plugins
+    if (!useFilters) {
+      return plugins
     }
     
-    let results = [...paginatedData.plugins]
+    let results = [...plugins]
     
     // Apply category filter
     if (filters.category !== 'all') {
@@ -129,7 +117,7 @@ const TemplatesPage = () => {
     }
     
     return results
-  }, [paginatedData, filters, useFilters])
+  }, [plugins, filters, useFilters])
   
   // Handle search input change
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +127,7 @@ const TemplatesPage = () => {
   // Handle search form submission
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    searchPlugins(searchTerm, showFilters)
+    searchPlugins(searchTerm, showFilters) // Only apply filters if they're visible
   }
   
   // Handle quick search (without filters)
@@ -310,26 +298,6 @@ const TemplatesPage = () => {
                 </button>
               </div>
             </motion.div>
-            
-            {/* Show notice if using fallback data */}
-            {isUsingFallback && (
-              <motion.div 
-                className="fallback-notice"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{
-                  background: '#fff3cd',
-                  border: '1px solid #ffeaa7',
-                  borderRadius: '8px',
-                  padding: '12px 16px',
-                  margin: '16px 0',
-                  color: '#856404'
-                }}
-              >
-                <FiInfo style={{ display: 'inline', marginRight: '8px' }} />
-                <strong>Demo Mode:</strong> Showing sample plugins due to API restrictions. In production, this would connect to the live WordPress.org API.
-              </motion.div>
-            )}
           </div>
         </section>
         
@@ -354,7 +322,7 @@ const TemplatesPage = () => {
               <div className="error-container">
                 <FiInfo className="error-icon" />
                 <p>{error}</p>
-                <button className="retry-button" onClick={() => searchPlugins(currentSearchTerm, useFilters)}>
+                <button className="retry-button" onClick={() => searchPlugins(searchTerm, useFilters)}>
                   Try Again
                 </button>
               </div>

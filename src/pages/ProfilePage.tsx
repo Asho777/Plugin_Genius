@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { FiEdit, FiUser, FiMail, FiBriefcase, FiCalendar, FiGlobe, FiBell, FiMoon, FiSun, FiUpload, FiCheck } from 'react-icons/fi'
+import { FiEdit, FiUser, FiMail, FiBriefcase, FiCalendar, FiGlobe, FiBell, FiMoon, FiSun, FiUpload, FiCheck, FiAlertCircle } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
+import AvatarImage from '../components/common/AvatarImage'
 import { 
   getUserProfile, 
   getUserSecurity, 
@@ -25,6 +26,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -65,41 +67,56 @@ const ProfilePage = () => {
     }
     
     const file = e.target.files[0]
+    
+    // Reset states
     setUploading(true)
+    setUploadError(null)
+    setUploadSuccess(false)
     
     try {
+      console.log('Starting avatar upload for file:', file.name, 'Size:', file.size, 'Type:', file.type)
+      
       const avatarUrl = await uploadAvatar(file)
-      console.log('Uploaded avatar URL:', avatarUrl)
+      console.log('Upload completed, received URL:', avatarUrl)
       
       if (avatarUrl && profile) {
-        const updatedProfile = await updateUserProfile({
-          ...profile,
-          avatar_url: avatarUrl
-        })
+        // Refresh the profile data to get the updated avatar_url
+        const updatedProfile = await getUserProfile()
         
         if (updatedProfile) {
-          console.log('Profile updated with new avatar:', updatedProfile.avatar_url)
+          console.log('Profile refreshed with new avatar:', updatedProfile.avatar_url)
           setProfile(updatedProfile)
           setUploadSuccess(true)
           setTimeout(() => setUploadSuccess(false), 3000)
           
-          // Notify other components (like Navbar) about the profile update
+          // Notify other components about the profile update
           localStorage.setItem('profileUpdated', new Date().toISOString())
-          
-          // Dispatch both a storage event and a custom event
           window.dispatchEvent(new StorageEvent('storage', {
             key: 'profileUpdated',
             newValue: new Date().toISOString()
           }))
-          
-          // Also dispatch a custom event as a backup
           window.dispatchEvent(new Event('profileUpdated'))
+        } else {
+          console.warn('Could not refresh profile after upload')
+          // Still update the local state with the returned URL
+          setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : null)
+          setUploadSuccess(true)
+          setTimeout(() => setUploadSuccess(false), 3000)
         }
+      } else {
+        throw new Error('Upload failed - no URL returned')
       }
     } catch (error) {
       console.error('Error uploading avatar:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      setUploadError(errorMessage)
+      setTimeout(() => setUploadError(null), 5000)
     } finally {
       setUploading(false)
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -169,54 +186,57 @@ const ProfilePage = () => {
         
         <section className="profile-section">
           <div className="profile-container">
-            <div className="profile-avatar-section">
-              <div className="avatar-container">
-                <div 
-                  className={`avatar-wrapper ${uploading ? 'uploading' : ''} ${uploadSuccess ? 'success' : ''}`}
-                  onClick={handleAvatarClick}
-                >
-                  {profile?.avatar_url ? (
-                    <img 
-                      src={`${profile.avatar_url}?t=${new Date().getTime()}`} 
-                      alt="Profile avatar" 
-                      className="profile-avatar" 
-                      onError={(e) => {
-                        console.error('Profile avatar failed to load:', profile.avatar_url)
-                        const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                      }}
+            <div className="profile-sidebar">
+              <div className="profile-avatar-section">
+                <div className="avatar-container">
+                  <div className="avatar-wrapper" onClick={handleAvatarClick}>
+                    <AvatarImage 
+                      src={profile?.avatar_url} 
+                      alt="Profile Avatar"
+                      fallbackText={profile?.full_name?.charAt(0) || 'U'}
+                      size="lg"
                     />
-                  ) : (
-                    <div className="avatar-placeholder">
-                      <FiUser />
+                    <div className="avatar-overlay">
+                      <FiUpload />
+                      <span>Change Photo</span>
+                    </div>
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    style={{ display: 'none' }}
+                  />
+                  
+                  {uploading && (
+                    <div className="upload-status uploading">
+                      <div className="upload-spinner"></div>
+                      <span>Uploading...</span>
                     </div>
                   )}
                   
-                  <div className="avatar-overlay">
-                    {uploading ? (
-                      <div className="uploading-indicator">Uploading...</div>
-                    ) : uploadSuccess ? (
-                      <FiCheck className="success-icon" />
-                    ) : (
-                      <FiUpload />
-                    )}
-                  </div>
+                  {uploadSuccess && (
+                    <div className="upload-status success">
+                      <FiCheck />
+                      <span>Photo updated!</span>
+                    </div>
+                  )}
+                  
+                  {uploadError && (
+                    <div className="upload-status error">
+                      <FiAlertCircle />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
                 </div>
                 
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  onChange={handleAvatarChange}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                />
-                
-                <p className="avatar-help">Click to upload a profile picture</p>
-              </div>
-              
-              <div className="profile-name">
-                <h2>{profile?.full_name || 'User'}</h2>
-                <p>{profile?.email || 'No email provided'}</p>
+                <div className="profile-info">
+                  <h2>{profile?.full_name || 'User'}</h2>
+                  <p>{profile?.email}</p>
+                  {profile?.company && <p className="company">{profile.company}</p>}
+                </div>
               </div>
             </div>
             

@@ -1,512 +1,532 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'
 
-// Types for settings
 export interface UserProfile {
-  id?: string;
-  user_id?: string;
-  full_name: string;
-  email: string;
-  company: string;
-  avatar_url?: string;
+  id?: string
+  user_id: string
+  full_name?: string
+  email?: string
+  company?: string
+  avatar_url?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface UserSecurity {
-  id?: string;
-  user_id?: string;
-  password_last_changed?: string;
-  two_factor_enabled: boolean;
+  id?: string
+  user_id: string
+  password_last_changed?: string
+  two_factor_enabled: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface UserNotifications {
-  id?: string;
-  user_id?: string;
-  email_notifications: boolean;
-  update_notifications: boolean;
-  marketing_notifications: boolean;
+  id?: string
+  user_id: string
+  email_notifications: boolean
+  update_notifications: boolean
+  marketing_notifications: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface UserPreferences {
-  id?: string;
-  user_id?: string;
-  language: string;
-  timezone: string;
-  dark_mode: boolean;
+  id?: string
+  user_id: string
+  language?: string
+  timezone?: string
+  dark_mode: boolean
+  created_at?: string
+  updated_at?: string
 }
 
-// Get user profile
+export interface ProfileImage {
+  id?: string
+  user_id: string
+  image_url: string
+  storage_path: string
+  file_name: string
+  file_size: number
+  mime_type: string
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+// Get current user profile
 export const getUserProfile = async (): Promise<UserProfile | null> => {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser()
     
-    if (!user.user) {
-      console.log('No authenticated user found in getUserProfile');
-      return null;
+    if (!user) {
+      throw new Error('No authenticated user')
     }
-    
-    console.log('Getting profile for user:', user.user.id);
-    
+
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
-      .eq('user_id', user.user.id)
-      .single();
-      
+      .eq('user_id', user.id)
+      .single()
+
     if (error) {
-      console.error('Error fetching user profile:', error);
-      return null;
+      console.error('Error fetching user profile:', error)
+      return null
     }
-    
-    console.log('Successfully retrieved user profile:', data);
-    return data;
-  } catch (error) {
-    console.error('Exception in getUserProfile:', error);
-    return null;
-  }
-};
 
-// Update user profile
-export const updateUserProfile = async (profile: UserProfile): Promise<UserProfile | null> => {
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    
-    if (!user.user) {
-      console.log('No authenticated user found in updateUserProfile');
-      return null;
-    }
-    
-    console.log('Updating profile for user:', user.user.id);
-    
-    // Check if profile exists
-    const { data: existingProfile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('user_id', user.user.id)
-      .single();
-    
-    let result;
-    
-    if (existingProfile) {
-      console.log('Updating existing profile');
-      // Update existing profile
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .update({
-          full_name: profile.full_name,
-          email: profile.email,
-          company: profile.company,
-          avatar_url: profile.avatar_url, // Ensure avatar_url is included in the update
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.user.id)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error updating user profile:', error);
-        return null;
-      }
-      
-      console.log('Profile updated successfully:', data);
-      result = data;
-    } else {
-      console.log('Creating new profile');
-      // Insert new profile
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: user.user.id,
-          full_name: profile.full_name,
-          email: profile.email,
-          company: profile.company,
-          avatar_url: profile.avatar_url, // Ensure avatar_url is included in the insert
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error creating user profile:', error);
-        return null;
-      }
-      
-      console.log('Profile created successfully:', data);
-      result = data;
-    }
-    
-    // Notify about profile update
-    console.log('Dispatching profile update events');
-    window.localStorage.setItem('profileUpdated', new Date().toISOString());
-    window.dispatchEvent(new Event('profileUpdated'));
-    
-    return result;
+    return data
   } catch (error) {
-    console.error('Exception in updateUserProfile:', error);
-    return null;
+    console.error('Error in getUserProfile:', error)
+    return null
   }
-};
-
-// Upload avatar image
-export const uploadAvatar = async (file: File): Promise<string | null> => {
-  try {
-    const { data: user } = await supabase.auth.getUser();
-    
-    if (!user.user) {
-      console.log('No authenticated user found in uploadAvatar');
-      return null;
-    }
-    
-    console.log('Uploading avatar for user:', user.user.id);
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.user.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
-    
-    console.log('Uploading file to path:', filePath);
-    
-    const { error: uploadError } = await supabase.storage
-      .from('user-content')
-      .upload(filePath, file);
-      
-    if (uploadError) {
-      console.error('Error uploading avatar:', uploadError);
-      return null;
-    }
-    
-    console.log('File uploaded successfully, getting public URL');
-    
-    const { data } = supabase.storage
-      .from('user-content')
-      .getPublicUrl(filePath);
-      
-    console.log('Got public URL:', data.publicUrl);
-    
-    // Update user profile with avatar URL
-    const { error: updateError } = await supabase
-      .from('user_profiles')
-      .update({ 
-        avatar_url: data.publicUrl,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.user.id);
-      
-    if (updateError) {
-      console.error('Error updating avatar URL in profile:', updateError);
-    } else {
-      console.log('Profile updated with new avatar URL');
-      
-      // Notify about profile update
-      console.log('Dispatching profile update events after avatar upload');
-      window.localStorage.setItem('profileUpdated', new Date().toISOString());
-      window.dispatchEvent(new Event('profileUpdated'));
-    }
-    
-    return data.publicUrl;
-  } catch (error) {
-    console.error('Exception in uploadAvatar:', error);
-    return null;
-  }
-};
+}
 
 // Get user security settings
 export const getUserSecurity = async (): Promise<UserSecurity | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    return null;
-  }
-  
-  const { data, error } = await supabase
-    .from('user_security')
-    .select('*')
-    .eq('user_id', user.user.id)
-    .single();
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
     
-  if (error) {
-    console.error('Error fetching user security settings:', error);
-    return null;
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const { data, error } = await supabase
+      .from('user_security')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching user security:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in getUserSecurity:', error)
+    return null
   }
-  
-  return data;
-};
+}
+
+// Get user notification settings
+export const getUserNotifications = async (): Promise<UserNotifications | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const { data, error } = await supabase
+      .from('user_notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching user notifications:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in getUserNotifications:', error)
+    return null
+  }
+}
+
+// Get user preferences
+export const getUserPreferences = async (): Promise<UserPreferences | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const { data, error } = await supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching user preferences:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in getUserPreferences:', error)
+    return null
+  }
+}
+
+// Upload avatar - assumes bucket exists (created manually)
+export const uploadAvatar = async (file: File): Promise<string | null> => {
+  try {
+    console.log('Starting avatar upload process...')
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    console.log('User authenticated:', user.id)
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image')
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      throw new Error('File size must be less than 5MB')
+    }
+
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop()
+    const fileName = `avatar-${user.id}-${Date.now()}.${fileExt}`
+    const storagePath = `avatars/${fileName}`
+
+    console.log('Uploading to storage path:', storagePath)
+
+    // Upload to Supabase storage (bucket must exist)
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('user-content')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError)
+      
+      // Provide helpful error message if bucket doesn't exist
+      if (uploadError.message.includes('Bucket not found')) {
+        throw new Error('Storage bucket not found. Please create the "user-content" bucket manually in Supabase dashboard. See STORAGE_SETUP.md for instructions.')
+      }
+      
+      throw new Error(`Upload failed: ${uploadError.message}`)
+    }
+
+    console.log('File uploaded to storage successfully:', uploadData)
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('user-content')
+      .getPublicUrl(storagePath)
+
+    if (!urlData?.publicUrl) {
+      throw new Error('Failed to get public URL')
+    }
+
+    const publicUrl = urlData.publicUrl
+    console.log('Generated public URL:', publicUrl)
+
+    // Update user profile directly with new avatar URL
+    const { data: updateData, error: updateError } = await supabase
+      .from('user_profiles')
+      .update({ 
+        avatar_url: publicUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Profile update error:', updateError)
+      
+      // Clean up uploaded file if profile update fails
+      await supabase.storage
+        .from('user-content')
+        .remove([storagePath])
+      
+      throw new Error(`Profile update failed: ${updateError.message}`)
+    }
+
+    console.log('Profile updated successfully:', updateData)
+    return publicUrl
+
+  } catch (error) {
+    console.error('Error in uploadAvatar:', error)
+    throw error
+  }
+}
+
+// Update user profile
+export const updateUserProfile = async (profile: Partial<UserProfile>): Promise<UserProfile | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const updateData = {
+      ...profile,
+      user_id: user.id,
+      updated_at: new Date().toISOString()
+    }
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update(updateData)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating user profile:', error)
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in updateUserProfile:', error)
+    return null
+  }
+}
 
 // Update user security settings
-export const updateUserSecurity = async (security: UserSecurity): Promise<UserSecurity | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    return null;
-  }
-  
-  // Check if security settings exist
-  const { data: existingSecurity } = await supabase
-    .from('user_security')
-    .select('id')
-    .eq('user_id', user.user.id)
-    .single();
-  
-  let result;
-  
-  if (existingSecurity) {
-    // Update existing security settings
+export const updateUserSecurity = async (security: Partial<UserSecurity>): Promise<UserSecurity | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const updateData = {
+      ...security,
+      user_id: user.id,
+      updated_at: new Date().toISOString()
+    }
+
     const { data, error } = await supabase
       .from('user_security')
-      .update({
-        two_factor_enabled: security.two_factor_enabled,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.user.id)
+      .update(updateData)
+      .eq('user_id', user.id)
       .select()
-      .single();
-      
+      .single()
+
     if (error) {
-      console.error('Error updating user security settings:', error);
-      return null;
+      console.error('Error updating user security:', error)
+      throw error
     }
-    
-    result = data;
-  } else {
-    // Insert new security settings
-    const { data, error } = await supabase
-      .from('user_security')
-      .insert({
-        user_id: user.user.id,
-        two_factor_enabled: security.two_factor_enabled,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating user security settings:', error);
-      return null;
-    }
-    
-    result = data;
+
+    return data
+  } catch (error) {
+    console.error('Error in updateUserSecurity:', error)
+    return null
   }
-  
-  return result;
-};
+}
 
 // Update user password
 export const updateUserPassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
   try {
     const { error } = await supabase.auth.updateUser({
       password: newPassword
-    });
-    
-    if (error) {
-      console.error('Error updating password:', error);
-      return false;
-    }
-    
-    // Update password_last_changed in user_security
-    const { data: user } = await supabase.auth.getUser();
-    
-    if (user.user) {
-      // Check if security settings exist
-      const { data: existingSecurity } = await supabase
-        .from('user_security')
-        .select('id')
-        .eq('user_id', user.user.id)
-        .single();
-      
-      if (existingSecurity) {
-        await supabase
-          .from('user_security')
-          .update({
-            password_last_changed: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.user.id);
-      } else {
-        await supabase
-          .from('user_security')
-          .insert({
-            user_id: user.user.id,
-            password_last_changed: new Date().toISOString(),
-            two_factor_enabled: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error updating password:', error);
-    return false;
-  }
-};
+    })
 
-// Get user notification settings
-export const getUserNotifications = async (): Promise<UserNotifications | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    return null;
+    if (error) {
+      console.error('Error updating password:', error)
+      return false
+    }
+
+    // Update the password_last_changed field
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase
+        .from('user_security')
+        .update({ 
+          password_last_changed: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in updateUserPassword:', error)
+    return false
   }
-  
-  const { data, error } = await supabase
-    .from('user_notifications')
-    .select('*')
-    .eq('user_id', user.user.id)
-    .single();
-    
-  if (error) {
-    console.error('Error fetching user notification settings:', error);
-    return null;
-  }
-  
-  return data;
-};
+}
 
 // Update user notification settings
-export const updateUserNotifications = async (notifications: UserNotifications): Promise<UserNotifications | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    return null;
-  }
-  
-  // Check if notification settings exist
-  const { data: existingNotifications } = await supabase
-    .from('user_notifications')
-    .select('id')
-    .eq('user_id', user.user.id)
-    .single();
-  
-  let result;
-  
-  if (existingNotifications) {
-    // Update existing notification settings
-    const { data, error } = await supabase
-      .from('user_notifications')
-      .update({
-        email_notifications: notifications.email_notifications,
-        update_notifications: notifications.update_notifications,
-        marketing_notifications: notifications.marketing_notifications,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.user.id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating user notification settings:', error);
-      return null;
-    }
+export const updateUserNotifications = async (notifications: Partial<UserNotifications>): Promise<UserNotifications | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
     
-    result = data;
-  } else {
-    // Insert new notification settings
-    const { data, error } = await supabase
-      .from('user_notifications')
-      .insert({
-        user_id: user.user.id,
-        email_notifications: notifications.email_notifications,
-        update_notifications: notifications.update_notifications,
-        marketing_notifications: notifications.marketing_notifications,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating user notification settings:', error);
-      return null;
+    if (!user) {
+      throw new Error('No authenticated user')
     }
-    
-    result = data;
-  }
-  
-  return result;
-};
 
-// Get user preferences
-export const getUserPreferences = async (): Promise<UserPreferences | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    return null;
+    const updateData = {
+      ...notifications,
+      user_id: user.id,
+      updated_at: new Date().toISOString()
+    }
+
+    const { data, error } = await supabase
+      .from('user_notifications')
+      .update(updateData)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating user notifications:', error)
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in updateUserNotifications:', error)
+    return null
   }
-  
-  const { data, error } = await supabase
-    .from('user_preferences')
-    .select('*')
-    .eq('user_id', user.user.id)
-    .single();
-    
-  if (error) {
-    console.error('Error fetching user preferences:', error);
-    return null;
-  }
-  
-  return data;
-};
+}
 
 // Update user preferences
-export const updateUserPreferences = async (preferences: UserPreferences): Promise<UserPreferences | null> => {
-  const { data: user } = await supabase.auth.getUser();
-  
-  if (!user.user) {
-    return null;
-  }
-  
-  // Check if preferences exist
-  const { data: existingPreferences } = await supabase
-    .from('user_preferences')
-    .select('id')
-    .eq('user_id', user.user.id)
-    .single();
-  
-  let result;
-  
-  if (existingPreferences) {
-    // Update existing preferences
+export const updateUserPreferences = async (preferences: Partial<UserPreferences>): Promise<UserPreferences | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const updateData = {
+      ...preferences,
+      user_id: user.id,
+      updated_at: new Date().toISOString()
+    }
+
     const { data, error } = await supabase
       .from('user_preferences')
-      .update({
-        language: preferences.language,
-        timezone: preferences.timezone,
-        // Note: We still send dark_mode to the database even though we removed it from the UI
-        dark_mode: preferences.dark_mode,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.user.id)
+      .update(updateData)
+      .eq('user_id', user.id)
       .select()
-      .single();
-      
+      .single()
+
     if (error) {
-      console.error('Error updating user preferences:', error);
-      return null;
+      console.error('Error updating user preferences:', error)
+      throw error
     }
-    
-    result = data;
-  } else {
-    // Insert new preferences
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .insert({
-        user_id: user.user.id,
-        language: preferences.language,
-        timezone: preferences.timezone,
-        dark_mode: preferences.dark_mode,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating user preferences:', error);
-      return null;
-    }
-    
-    result = data;
+
+    return data
+  } catch (error) {
+    console.error('Error in updateUserPreferences:', error)
+    return null
   }
-  
-  return result;
-};
+}
+
+// Get user's profile images
+export const getUserProfileImages = async (): Promise<ProfileImage[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const { data, error } = await supabase
+      .from('profile_images')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching profile images:', error)
+      throw error
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error in getUserProfileImages:', error)
+    return []
+  }
+}
+
+// Get active profile image
+export const getActiveProfileImage = async (): Promise<ProfileImage | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const { data, error } = await supabase
+      .from('profile_images')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No active profile image found
+        return null
+      }
+      console.error('Error fetching active profile image:', error)
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in getActiveProfileImage:', error)
+    return null
+  }
+}
+
+// Delete profile image
+export const deleteProfileImage = async (imageId: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    // First get the image to delete from storage
+    const { data: imageData, error: fetchError } = await supabase
+      .from('profile_images')
+      .select('storage_path')
+      .eq('id', imageId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError) {
+      console.error('Error fetching image for deletion:', fetchError)
+      throw fetchError
+    }
+
+    // Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from('user-content')
+      .remove([imageData.storage_path])
+
+    if (storageError) {
+      console.error('Error deleting from storage:', storageError)
+      // Continue with database deletion even if storage deletion fails
+    }
+
+    // Delete from database
+    const { error: deleteError } = await supabase
+      .from('profile_images')
+      .delete()
+      .eq('id', imageId)
+      .eq('user_id', user.id)
+
+    if (deleteError) {
+      console.error('Error deleting from database:', deleteError)
+      throw deleteError
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error in deleteProfileImage:', error)
+    return false
+  }
+}

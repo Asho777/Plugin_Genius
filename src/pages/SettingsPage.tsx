@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiSave, FiKey, FiShield, FiUser, FiMail, FiGlobe, FiAlertCircle, FiCheckCircle } from 'react-icons/fi'
+import { FiSave, FiKey, FiShield, FiUser, FiMail, FiGlobe, FiSettings } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
-import { AI_MODELS, getApiKey, saveApiKey, validateApiKey } from '../services/aiService'
+import { 
+  getAIModelConfig, saveAIModelConfig, DEFAULT_AI_MODEL, AIModelConfig
+} from '../services/aiService'
 import { 
   getUserProfile, updateUserProfile, 
   getUserSecurity, updateUserSecurity, updateUserPassword, 
@@ -15,15 +17,21 @@ import { timezones, getUserTimezone } from '../utils/timezones'
 import '../styles/settings.css'
 
 const SettingsPage = () => {
-  const [activeTab, setActiveTab] = useState('api-keys')
-  // Only store API key for xBesh AI
-  const [apiKeys, setApiKeys] = useState<Record<string, string>>({
-    'xbesh': ''
-  })
-  const [apiKeyErrors, setApiKeyErrors] = useState<Record<string, string>>({})
+  const [activeTab, setActiveTab] = useState('ai-config')
   const [loading, setLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [saveError, setSaveError] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  
+  // AI Configuration state
+  const [aiConfig, setAiConfig] = useState<AIModelConfig>({
+    id: DEFAULT_AI_MODEL.id,
+    name: DEFAULT_AI_MODEL.name,
+    apiEndpoint: DEFAULT_AI_MODEL.apiEndpoint,
+    apiKey: '',
+    model: DEFAULT_AI_MODEL.model,
+    headers: DEFAULT_AI_MODEL.headers,
+    systemPrompt: DEFAULT_AI_MODEL.systemPrompt
+  })
   
   // User settings state
   const [profile, setProfile] = useState<UserProfile>({
@@ -54,20 +62,20 @@ const SettingsPage = () => {
     dark_mode: true
   })
   
-  // Load API keys (only xBesh AI)
+  // Load AI configuration
   useEffect(() => {
-    const loadApiKeys = async () => {
-      const keys: Record<string, string> = {};
-      
-      for (const model of AI_MODELS) {
-        const key = await getApiKey(model.id);
-        keys[model.id] = key || '';
+    const loadAIConfig = async () => {
+      console.log('Loading AI configuration...');
+      const config = await getAIModelConfig();
+      if (config) {
+        console.log('AI configuration loaded:', config);
+        setAiConfig(config);
+      } else {
+        console.log('No AI configuration found, using defaults');
       }
-      
-      setApiKeys(keys);
     };
     
-    loadApiKeys();
+    loadAIConfig();
   }, []);
   
   // Load user settings
@@ -109,54 +117,53 @@ const SettingsPage = () => {
     loadUserSettings();
   }, []);
   
-  // Validate API key on input change
-  const handleApiKeyChange = (modelId: string, value: string) => {
-    setApiKeys({...apiKeys, [modelId]: value});
-    
-    // Clear previous error
-    if (apiKeyErrors[modelId]) {
-      setApiKeyErrors({...apiKeyErrors, [modelId]: ''});
-    }
-    
-    // Validate if key is not empty
-    if (value.trim()) {
-      const validation = validateApiKey(modelId, value);
-      if (!validation.isValid) {
-        setApiKeyErrors({...apiKeyErrors, [modelId]: validation.error || 'Invalid API key format'});
-      }
-    }
-  };
-  
-  // Handle save API keys
-  const handleSaveApiKeys = async () => {
+  // Handle save AI configuration
+  const handleSaveAIConfig = async () => {
+    console.log('Save AI config button clicked');
     setLoading(true);
-    setSaveError('');
+    setSaveError(null);
+    setSaveSuccess(false);
     
     try {
-      const errors: Record<string, string> = {};
-      let hasErrors = false;
-      
-      for (const model of AI_MODELS) {
-        if (apiKeys[model.id]) {
-          const result = await saveApiKey(model.id, apiKeys[model.id]);
-          if (!result.success) {
-            errors[model.id] = result.error || 'Failed to save API key';
-            hasErrors = true;
-          }
-        }
+      // Validate required fields
+      if (!aiConfig.name.trim()) {
+        setSaveError('Model name is required');
+        setLoading(false);
+        return;
       }
       
-      setApiKeyErrors(errors);
+      if (!aiConfig.apiEndpoint.trim()) {
+        setSaveError('API endpoint is required');
+        setLoading(false);
+        return;
+      }
       
-      if (hasErrors) {
-        setSaveError('Some API keys could not be saved. Please check the errors above.');
-      } else {
+      if (!aiConfig.apiKey.trim()) {
+        setSaveError('API key is required');
+        setLoading(false);
+        return;
+      }
+      
+      if (!aiConfig.model.trim()) {
+        setSaveError('Model is required');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Attempting to save AI configuration...');
+      const success = await saveAIModelConfig(aiConfig);
+      
+      if (success) {
+        console.log('AI configuration saved successfully');
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        console.error('Failed to save AI configuration');
+        setSaveError('Failed to save AI configuration. Please check the console for details.');
       }
     } catch (error) {
-      console.error('Error saving API keys:', error);
-      setSaveError('Error saving API keys. Please try again.');
+      console.error('Error saving AI configuration:', error);
+      setSaveError(`Error saving AI configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -165,6 +172,7 @@ const SettingsPage = () => {
   // Handle save profile
   const handleSaveProfile = async () => {
     setLoading(true);
+    setSaveError(null);
     
     try {
       const updatedProfile = await updateUserProfile(profile);
@@ -173,11 +181,11 @@ const SettingsPage = () => {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        alert('Error saving profile. Please try again.');
+        setSaveError('Error saving profile. Please try again.');
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Error saving profile. Please try again.');
+      setSaveError('Error saving profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -186,6 +194,7 @@ const SettingsPage = () => {
   // Handle save security settings
   const handleSaveSecurity = async () => {
     setLoading(true);
+    setSaveError(null);
     
     try {
       const updatedSecurity = await updateUserSecurity(security);
@@ -194,11 +203,11 @@ const SettingsPage = () => {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        alert('Error saving security settings. Please try again.');
+        setSaveError('Error saving security settings. Please try again.');
       }
     } catch (error) {
       console.error('Error saving security settings:', error);
-      alert('Error saving security settings. Please try again.');
+      setSaveError('Error saving security settings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -207,10 +216,11 @@ const SettingsPage = () => {
   // Handle save password
   const handleSavePassword = async () => {
     setLoading(true);
+    setSaveError(null);
     
     try {
       if (passwords.new !== passwords.confirm) {
-        alert('New passwords do not match.');
+        setSaveError('New passwords do not match.');
         setLoading(false);
         return;
       }
@@ -222,11 +232,11 @@ const SettingsPage = () => {
         setTimeout(() => setSaveSuccess(false), 3000);
         setPasswords({ current: '', new: '', confirm: '' });
       } else {
-        alert('Failed to update password. Please check your current password and try again.');
+        setSaveError('Failed to update password. Please check your current password and try again.');
       }
     } catch (error) {
       console.error('Error updating password:', error);
-      alert('Error updating password. Please try again.');
+      setSaveError('Error updating password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -235,6 +245,7 @@ const SettingsPage = () => {
   // Handle save notifications
   const handleSaveNotifications = async () => {
     setLoading(true);
+    setSaveError(null);
     
     try {
       const updatedNotifications = await updateUserNotifications(notifications);
@@ -243,11 +254,11 @@ const SettingsPage = () => {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        alert('Error saving notification preferences. Please try again.');
+        setSaveError('Error saving notification preferences. Please try again.');
       }
     } catch (error) {
       console.error('Error saving notifications:', error);
-      alert('Error saving notification preferences. Please try again.');
+      setSaveError('Error saving notification preferences. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -256,6 +267,7 @@ const SettingsPage = () => {
   // Handle save preferences
   const handleSavePreferences = async () => {
     setLoading(true);
+    setSaveError(null);
     
     try {
       const updatedPreferences = await updateUserPreferences(preferences);
@@ -264,11 +276,11 @@ const SettingsPage = () => {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        alert('Error saving preferences. Please try again.');
+        setSaveError('Error saving preferences. Please try again.');
       }
     } catch (error) {
       console.error('Error saving preferences:', error);
-      alert('Error saving preferences. Please try again.');
+      setSaveError('Error saving preferences. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -305,11 +317,11 @@ const SettingsPage = () => {
           <div className="settings-container">
             <div className="settings-sidebar">
               <button 
-                className={`settings-tab ${activeTab === 'api-keys' ? 'active' : ''}`}
-                onClick={() => setActiveTab('api-keys')}
+                className={`settings-tab ${activeTab === 'ai-config' ? 'active' : ''}`}
+                onClick={() => setActiveTab('ai-config')}
               >
-                <FiKey />
-                <span>API Keys</span>
+                <FiSettings />
+                <span>AI Configuration</span>
               </button>
               <button 
                 className={`settings-tab ${activeTab === 'account' ? 'active' : ''}`}
@@ -342,66 +354,105 @@ const SettingsPage = () => {
             </div>
             
             <div className="settings-content-panel">
-              {activeTab === 'api-keys' && (
-                <div className="api-keys-panel">
-                  <h2 className="panel-title">API Keys</h2>
+              {/* Error Message Display */}
+              {saveError && (
+                <div className="error-message">
+                  <p>{saveError}</p>
+                  <button onClick={() => setSaveError(null)}>×</button>
+                </div>
+              )}
+              
+              {activeTab === 'ai-config' && (
+                <div className="ai-config-panel">
+                  <h2 className="panel-title">AI Model Configuration</h2>
                   <p className="panel-description">
-                    Add your xBesh AI API key to use the AI-powered plugin creation features.
-                    Your key is securely stored and never shared with third parties.
+                    Configure your AI model connection details. Plugin Genius will use this configuration 
+                    to generate WordPress plugins. Your configuration is securely stored and never shared.
                   </p>
                   
-                  {saveError && (
-                    <div className="error-message">
-                      <FiAlertCircle />
-                      <span>{saveError}</span>
-                    </div>
-                  )}
-                  
-                  <div className="api-keys-form">
-                    {AI_MODELS.map(model => (
-                      <div key={model.id} className="api-key-input-group">
-                        <label htmlFor={`api-key-${model.id}`}>{model.name} API Key</label>
-                        <div className="api-key-input-wrapper">
-                          <input
-                            id={`api-key-${model.id}`}
-                            type="password"
-                            placeholder={model.keyExample || `Enter your ${model.name} API key`}
-                            value={apiKeys[model.id]}
-                            onChange={(e) => handleApiKeyChange(model.id, e.target.value)}
-                            className={apiKeyErrors[model.id] ? 'error' : ''}
-                          />
-                          {apiKeys[model.id] && !apiKeyErrors[model.id] && (
-                            <FiCheckCircle className="validation-icon success" />
-                          )}
-                          {apiKeyErrors[model.id] && (
-                            <FiAlertCircle className="validation-icon error" />
-                          )}
-                        </div>
-                        {apiKeyErrors[model.id] && (
-                          <div className="api-key-error">
-                            <FiAlertCircle />
-                            <span>{apiKeyErrors[model.id]}</span>
-                          </div>
-                        )}
-                        <div className="api-key-help">
-                          <p>
-                            Get your xBesh AI API key from the xBesh AI platform.
-                          </p>
-                          {model.keyExample && (
-                            <p className="key-format">Format: {model.keyExample}</p>
-                          )}
-                        </div>
+                  <div className="ai-config-form">
+                    <div className="form-group">
+                      <label htmlFor="ai-name">Model Name *</label>
+                      <input
+                        id="ai-name"
+                        type="text"
+                        placeholder="Enter a name for your AI model"
+                        value={aiConfig.name}
+                        onChange={(e) => setAiConfig({...aiConfig, name: e.target.value})}
+                        required
+                      />
+                      <div className="help-text">
+                        <p>A friendly name to identify your AI model configuration.</p>
                       </div>
-                    ))}
+                    </div>
                     
-                    <div className="api-keys-actions">
+                    <div className="form-group">
+                      <label htmlFor="api-endpoint">API Endpoint *</label>
+                      <input
+                        id="api-endpoint"
+                        type="url"
+                        placeholder="https://api.openai.com/v1/chat/completions"
+                        value={aiConfig.apiEndpoint}
+                        onChange={(e) => setAiConfig({...aiConfig, apiEndpoint: e.target.value})}
+                        required
+                      />
+                      <div className="help-text">
+                        <p>The full URL endpoint for your AI model API.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="api-key">API Key *</label>
+                      <input
+                        id="api-key"
+                        type="password"
+                        placeholder="Enter your API key"
+                        value={aiConfig.apiKey}
+                        onChange={(e) => setAiConfig({...aiConfig, apiKey: e.target.value})}
+                        required
+                      />
+                      <div className="help-text">
+                        <p>Your API key for authentication with the AI service.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="model">Model *</label>
+                      <input
+                        id="model"
+                        type="text"
+                        placeholder="gpt-4"
+                        value={aiConfig.model}
+                        onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
+                        required
+                      />
+                      <div className="help-text">
+                        <p>The specific model identifier (e.g., gpt-4, claude-3-opus, gemini-pro).</p>
+                      </div>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="system-prompt">System Prompt</label>
+                      <textarea
+                        id="system-prompt"
+                        rows={4}
+                        placeholder="Enter the system prompt for your AI model"
+                        value={aiConfig.systemPrompt}
+                        onChange={(e) => setAiConfig({...aiConfig, systemPrompt: e.target.value})}
+                      />
+                      <div className="help-text">
+                        <p>Instructions that define how the AI should behave when generating plugins.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="ai-config-actions">
                       <button 
                         className={`save-button ${saveSuccess ? 'success' : ''}`}
-                        onClick={handleSaveApiKeys}
+                        onClick={handleSaveAIConfig}
                         disabled={loading}
                       >
                         <FiSave />
-                        <span>{loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save API Keys'}</span>
+                        <span>{loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Configuration'}</span>
                       </button>
                     </div>
                   </div>
