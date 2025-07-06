@@ -19,6 +19,9 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, onClick, delay = 0 }) =
     return count.toString()
   }
   
+  // Ensure tags is always an array
+  const pluginTags = Array.isArray(plugin.tags) ? plugin.tags : []
+  
   // Handle the entire card click
   const handleCardClick = () => {
     onClick();
@@ -74,11 +77,11 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, onClick, delay = 0 }) =
         </div>
         
         <div className="plugin-card-tags">
-          {plugin.tags.slice(0, 3).map((tag, index) => (
+          {pluginTags.slice(0, 3).map((tag, index) => (
             <span key={index} className="plugin-tag">{tag}</span>
           ))}
-          {plugin.tags.length > 3 && (
-            <span className="plugin-tag-more">+{plugin.tags.length - 3}</span>
+          {pluginTags.length > 3 && (
+            <span className="plugin-tag-more">+{pluginTags.length - 3}</span>
           )}
         </div>
       </div>
