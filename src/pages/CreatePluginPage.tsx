@@ -1083,16 +1083,6 @@ ${allFiles}`;
           >
             <h1 className="page-title">Professional WordPress Plugin Development</h1>
             <p className="page-subtitle">Create production-ready, secure, and standards-compliant WordPress plugins with AI-powered professional development</p>
-            
-            <div className="plugin-name-container">
-              <input 
-                type="text" 
-                className="plugin-name-input" 
-                placeholder="Enter Professional Plugin Name" 
-                value={pluginName}
-                onChange={(e) => setPluginName(e.target.value)}
-              />
-            </div>
           </motion.div>
         </header>
         
