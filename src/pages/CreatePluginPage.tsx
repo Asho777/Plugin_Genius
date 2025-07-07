@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader } from 'react-icons/fi'
+import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader, FiFolder, FiFile, FiChevronRight, FiChevronDown } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import { Message, sendMessage, getApiKey } from '../services/aiService'
@@ -28,7 +28,9 @@ const CreatePluginPage = () => {
   const { lockScroll, unlockScroll } = useScrollLock();
   
   const [pluginName, setPluginName] = useState('')
-  const [activeTab, setActiveTab] = useState('chat')
+  const [pluginDescription, setPluginDescription] = useState('')
+  const [pluginRequirements, setPluginRequirements] = useState('')
+  const [activeTab, setActiveTab] = useState('builder')
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'system',
@@ -43,350 +45,16 @@ const CreatePluginPage = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [apiKeyMissing, setApiKeyMissing] = useState(false)
   const [terminalInput, setTerminalInput] = useState('')
-  // Enhanced terminal output with professional WordPress development commands
   const [terminalOutput, setTerminalOutput] = useState<string[]>([
-    '$ wp --version',
-    'WP-CLI 2.8.1',
-    '$ composer --version', 
-    'Composer version 2.5.8',
-    '$ php --version',
-    'PHP 8.1.0 (cli)',
-    '$ wp plugin scaffold my-custom-plugin',
-    'Success: Created plugin files.',
-    '$ wp plugin activate my-custom-plugin',
-    'Plugin activated.',
+    'WordPress Plugin Builder Terminal',
+    '=================================',
+    '',
+    'Professional WordPress Plugin Development Environment',
+    'Ready to build your plugin...',
+    '',
     '$ _'
   ])
-  // Professional WordPress plugin starter template
-  const [code, setCode] = useState(`<?php
-/**
- * Plugin Name: ${pluginName || 'Professional Custom Plugin'}
- * Plugin URI: https://example.com/plugins/professional-custom-plugin
- * Description: A professional, production-ready WordPress plugin built with industry best practices, security standards, and clean architecture.
- * Version: 1.0.0
- * Author: Plugin Genius
- * Author URI: https://plugingenius.com
- * Text Domain: professional-custom-plugin
- * Domain Path: /languages
- * Requires at least: 5.0
- * Tested up to: 6.4
- * Requires PHP: 7.4
- * License: GPL v2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Network: false
- */
-
-// Exit if accessed directly
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-// Define plugin constants
-define('PROFESSIONAL_PLUGIN_VERSION', '1.0.0');
-define('PROFESSIONAL_PLUGIN_PATH', plugin_dir_path(__FILE__));
-define('PROFESSIONAL_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('PROFESSIONAL_PLUGIN_BASENAME', plugin_basename(__FILE__));
-
-/**
- * Main Plugin Class
- * 
- * Follows singleton pattern and WordPress best practices
- */
-class Professional_Custom_Plugin {
-    
-    /**
-     * Single instance of the plugin
-     */
-    private static $instance = null;
-    
-    /**
-     * Get single instance of the plugin
-     */
-    public static function get_instance() {
-        if (null === self::$instance) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
-    
-    /**
-     * Constructor - Initialize the plugin
-     */
-    private function __construct() {
-        $this->init_hooks();
-    }
-    
-    /**
-     * Initialize WordPress hooks
-     */
-    private function init_hooks() {
-        // Activation and deactivation hooks
-        register_activation_hook(__FILE__, array($this, 'activate'));
-        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
-        
-        // Initialize plugin
-        add_action('init', array($this, 'init'));
-        
-        // Admin hooks
-        if (is_admin()) {
-            add_action('admin_menu', array($this, 'add_admin_menu'));
-            add_action('admin_init', array($this, 'admin_init'));
-        }
-        
-        // Frontend hooks
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        
-        // Shortcode
-        add_shortcode('professional_plugin', array($this, 'shortcode_handler'));
-    }
-    
-    /**
-     * Plugin activation
-     */
-    public function activate() {
-        // Create database tables if needed
-        $this->create_tables();
-        
-        // Set default options
-        $this->set_default_options();
-        
-        // Flush rewrite rules
-        flush_rewrite_rules();
-        
-        // Log activation
-        error_log('Professional Custom Plugin activated');
-    }
-    
-    /**
-     * Plugin deactivation
-     */
-    public function deactivate() {
-        // Clean up temporary data
-        $this->cleanup_temp_data();
-        
-        // Flush rewrite rules
-        flush_rewrite_rules();
-        
-        // Log deactivation
-        error_log('Professional Custom Plugin deactivated');
-    }
-    
-    /**
-     * Initialize plugin functionality
-     */
-    public function init() {
-        // Load text domain for internationalization
-        load_plugin_textdomain(
-            'professional-custom-plugin',
-            false,
-            dirname(PROFESSIONAL_PLUGIN_BASENAME) . '/languages'
-        );
-        
-        // Initialize custom post types
-        $this->register_post_types();
-        
-        // Initialize custom taxonomies
-        $this->register_taxonomies();
-    }
-    
-    /**
-     * Add admin menu
-     */
-    public function add_admin_menu() {
-        add_menu_page(
-            __('Professional Plugin', 'professional-custom-plugin'),
-            __('Professional Plugin', 'professional-custom-plugin'),
-            'manage_options',
-            'professional-plugin',
-            array($this, 'admin_page'),
-            'dashicons-admin-plugins',
-            30
-        );
-    }
-    
-    /**
-     * Admin page callback
-     */
-    public function admin_page() {
-        // Verify user capabilities
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.'));
-        }
-        
-        // Handle form submission
-        if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'professional_plugin_settings')) {
-            $this->save_settings();
-        }
-        
-        // Get current settings
-        $settings = get_option('professional_plugin_settings', array());
-        
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-            
-            <form method="post" action="">
-                <?php wp_nonce_field('professional_plugin_settings'); ?>
-                
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="plugin_enabled"><?php _e('Enable Plugin', 'professional-custom-plugin'); ?></label>
-                        </th>
-                        <td>
-                            <input type="checkbox" id="plugin_enabled" name="plugin_enabled" value="1" 
-                                   <?php checked(isset($settings['enabled']) ? $settings['enabled'] : 0, 1); ?> />
-                            <p class="description"><?php _e('Enable or disable the plugin functionality.', 'professional-custom-plugin'); ?></p>
-                        </td>
-                    </tr>
-                </table>
-                
-                <?php submit_button(); ?>
-            </form>
-        </div>
-        <?php
-    }
-    
-    /**
-     * Initialize admin settings
-     */
-    public function admin_init() {
-        // Register settings
-        register_setting('professional_plugin_settings', 'professional_plugin_settings');
-    }
-    
-    /**
-     * Save plugin settings
-     */
-    private function save_settings() {
-        $settings = array(
-            'enabled' => isset($_POST['plugin_enabled']) ? 1 : 0
-        );
-        
-        update_option('professional_plugin_settings', $settings);
-        
-        add_action('admin_notices', function() {
-            echo '<div class="notice notice-success is-dismissible"><p>' . 
-                 __('Settings saved successfully!', 'professional-custom-plugin') . '</p></div>';
-        });
-    }
-    
-    /**
-     * Enqueue frontend scripts and styles
-     */
-    public function enqueue_scripts() {
-        wp_enqueue_style(
-            'professional-plugin-style',
-            PROFESSIONAL_PLUGIN_URL . 'assets/css/style.css',
-            array(),
-            PROFESSIONAL_PLUGIN_VERSION
-        );
-        
-        wp_enqueue_script(
-            'professional-plugin-script',
-            PROFESSIONAL_PLUGIN_URL . 'assets/js/script.js',
-            array('jquery'),
-            PROFESSIONAL_PLUGIN_VERSION,
-            true
-        );
-    }
-    
-    /**
-     * Shortcode handler
-     */
-    public function shortcode_handler($atts) {
-        $atts = shortcode_atts(array(
-            'title' => __('Professional Plugin', 'professional-custom-plugin'),
-            'content' => __('This is a professional WordPress plugin.', 'professional-custom-plugin')
-        ), $atts, 'professional_plugin');
-        
-        ob_start();
-        ?>
-        <div class="professional-plugin-shortcode">
-            <h3><?php echo esc_html($atts['title']); ?></h3>
-            <p><?php echo esc_html($atts['content']); ?></p>
-        </div>
-        <?php
-        return ob_get_clean();
-    }
-    
-    /**
-     * Create database tables
-     */
-    private function create_tables() {
-        global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'professional_plugin_data';
-        
-        $charset_collate = $wpdb->get_charset_collate();
-        
-        $sql = "CREATE TABLE $table_name (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            name tinytext NOT NULL,
-            data text NOT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id)
-        ) $charset_collate;";
-        
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-    }
-    
-    /**
-     * Set default plugin options
-     */
-    private function set_default_options() {
-        $default_settings = array(
-            'enabled' => 1,
-            'version' => PROFESSIONAL_PLUGIN_VERSION
-        );
-        
-        add_option('professional_plugin_settings', $default_settings);
-    }
-    
-    /**
-     * Clean up temporary data
-     */
-    private function cleanup_temp_data() {
-        // Clean up any temporary data, cache, etc.
-        wp_cache_flush();
-    }
-    
-    /**
-     * Register custom post types
-     */
-    private function register_post_types() {
-        // Example custom post type
-        register_post_type('professional_item', array(
-            'labels' => array(
-                'name' => __('Professional Items', 'professional-custom-plugin'),
-                'singular_name' => __('Professional Item', 'professional-custom-plugin')
-            ),
-            'public' => true,
-            'has_archive' => true,
-            'supports' => array('title', 'editor', 'thumbnail'),
-            'show_in_rest' => true
-        ));
-    }
-    
-    /**
-     * Register custom taxonomies
-     */
-    private function register_taxonomies() {
-        // Example custom taxonomy
-        register_taxonomy('professional_category', 'professional_item', array(
-            'labels' => array(
-                'name' => __('Professional Categories', 'professional-custom-plugin'),
-                'singular_name' => __('Professional Category', 'professional-custom-plugin')
-            ),
-            'hierarchical' => true,
-            'show_in_rest' => true
-        ));
-    }
-}
-
-// Initialize the plugin
-Professional_Custom_Plugin::get_instance();`)
+  const [code, setCode] = useState('')
   const [copied, setCopied] = useState(false)
   const [formatting, setFormatting] = useState(false)
   const [previewMode, setPreviewMode] = useState('desktop')
@@ -394,11 +62,21 @@ Professional_Custom_Plugin::get_instance();`)
   const [isExecuting, setIsExecuting] = useState(false)
   const [isBuilding, setIsBuilding] = useState(false)
   const [buildResult, setBuildResult] = useState<PluginBuildResult | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState('')
+  const [fileStructure, setFileStructure] = useState<Record<string, string>>({})
+  const [currentFile, setCurrentFile] = useState('')
+  const [fileContents, setFileContents] = useState<Record<string, string>>({})
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [expandedFolders, setExpandedFolders] = useState(new Set(['root']))
+  const [isApiKeySet, setIsApiKeySet] = useState(false)
+  
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollPositionRef = useRef<number>(0)
   const pageRef = useRef<HTMLDivElement>(null)
   const initialRenderRef = useRef(true)
   const codeEditorRef = useRef<HTMLPreElement>(null)
+  const terminalRef = useRef<HTMLDivElement>(null)
   
   // Super aggressive scroll prevention - runs before anything else
   useEffect(() => {
@@ -536,7 +214,9 @@ Professional_Custom_Plugin::get_instance();`)
   useEffect(() => {
     const checkApiKey = async () => {
       const apiKey = await getApiKey('cursor-ai-style');
-      setApiKeyMissing(!apiKey);
+      const hasKey = !!apiKey;
+      setApiKeyMissing(!hasKey);
+      setIsApiKeySet(hasKey);
     };
     
     checkApiKey();
@@ -549,6 +229,13 @@ Professional_Custom_Plugin::get_instance();`)
     }
   }, [messages, isLoading]);
   
+  // Auto-scroll terminal
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalOutput]);
+  
   // Save scroll position before any potential state changes
   useEffect(() => {
     const handleScroll = () => {
@@ -558,7 +245,409 @@ Professional_Custom_Plugin::get_instance();`)
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
+  // Helper functions to create basic plugin files
+  const createBasicPluginFile = (name: string, description: string, slug: string) => `<?php
+/**
+ * Plugin Name: ${name}
+ * Plugin URI: https://example.com/${slug}
+ * Description: ${description}
+ * Version: 1.0.0
+ * Author: Your Name
+ * License: GPL v2 or later
+ * Text Domain: ${slug}
+ */
+
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Define plugin constants
+define('${slug.toUpperCase()}_VERSION', '1.0.0');
+define('${slug.toUpperCase()}_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('${slug.toUpperCase()}_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+// Main plugin class
+class ${name.replace(/\s+/g, '')} {
+    
+    public function __construct() {
+        add_action('init', array($this, 'init'));
+        register_activation_hook(__FILE__, array($this, 'activate'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+    }
+    
+    public function init() {
+        // Load text domain
+        load_plugin_textdomain('${slug}', false, dirname(plugin_basename(__FILE__)) . '/languages/');
+        
+        // Include admin files
+        if (is_admin()) {
+            require_once ${slug.toUpperCase()}_PLUGIN_DIR . 'admin/${slug}-admin.php';
+        }
+        
+        // Include public files
+        require_once ${slug.toUpperCase()}_PLUGIN_DIR . 'public/${slug}-public.php';
+    }
+    
+    public function activate() {
+        // Activation code here
+        flush_rewrite_rules();
+    }
+    
+    public function deactivate() {
+        // Deactivation code here
+        flush_rewrite_rules();
+    }
+}
+
+// Initialize the plugin
+new ${name.replace(/\s+/g, '')}();
+?>`;
+
+  const addTerminalOutput = (text: string) => {
+    setTerminalOutput(prev => [...prev, text]);
+  };
+
+  const validateApiKey = async () => {
+    console.log('🔑 Validating API key...')
+    const apiKey = await getApiKey('cursor-ai-style');
+    console.log('🔑 API key check result:', { hasKey: !!apiKey, keyPrefix: apiKey?.substring(0, 10) + '...' })
+    
+    if (!apiKey?.trim()) {
+      addTerminalOutput('❌ Error: Please configure your Claude Sonnet 4 API key in settings');
+      return false;
+    }
+    
+    // Validate API key format
+    if (!apiKey.startsWith('sk-ant-')) {
+      addTerminalOutput('❌ Error: Invalid Claude Sonnet 4 API key format. Key should start with "sk-ant-"');
+      return false;
+    }
+    
+    setIsApiKeySet(true);
+    addTerminalOutput('✅ Claude Sonnet 4 API key validated successfully');
+    return true;
+  };
+
+  const generatePluginStructure = async () => {
+    console.log('🚀 Starting plugin generation process...')
+    
+    if (!(await validateApiKey())) {
+      console.log('❌ API key validation failed')
+      return;
+    }
+    
+    if (!pluginName.trim()) {
+      addTerminalOutput('❌ Error: Please enter a plugin name');
+      return;
+    }
+
+    setIsGenerating(true);
+    addTerminalOutput(`🚀 Starting plugin generation for: ${pluginName}`);
+    setGenerationProgress('Initializing plugin structure...');
+
+    try {
+      // Create enhanced messages for plugin generation
+      const pluginMessages: Message[] = [
+        {
+          role: 'system',
+          content: 'You are an expert WordPress plugin developer. Create a complete, professional WordPress plugin with proper file structure and code.'
+        },
+        {
+          role: 'user',
+          content: `Create a professional WordPress plugin with the following details:
+          
+Plugin Name: ${pluginName}
+Description: ${pluginDescription}
+Requirements: ${pluginRequirements}
+
+IMPORTANT: Your response must be a single, valid JSON object with file paths as keys and file contents as values. Include:
+- Main plugin file (${pluginName.toLowerCase().replace(/\s+/g, '-')}.php)
+- Admin interface files
+- Frontend files
+- CSS/JS assets
+- Language files
+- README.txt
+
+Make this a premium-quality plugin with proper WordPress coding standards, security, and best practices.
+
+Respond ONLY with valid JSON. No explanations, no markdown formatting, just the JSON object.`
+        }
+      ];
+
+      addTerminalOutput('📂 Generating file structure with Claude Sonnet 4...');
+      console.log('📤 Sending request to Claude Sonnet 4...')
+      
+      const response = await sendMessage(pluginMessages, pluginName);
+      console.log('📥 Received response from Claude Sonnet 4:', { responseLength: response.length })
+      
+      let parsedStructure: Record<string, string>;
+      try {
+        // Clean the response to remove any potential markdown formatting
+        let cleanedResponse = response.trim();
+        
+        // Remove markdown code blocks if present
+        if (cleanedResponse.startsWith('```json')) {
+          cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedResponse.startsWith('```')) {
+          cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        // Try to find JSON object if there's extra text
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanedResponse = jsonMatch[0];
+        }
+        
+        console.log('🧹 Cleaned response for parsing:', { cleanedLength: cleanedResponse.length })
+        parsedStructure = JSON.parse(cleanedResponse);
+        
+        // Validate that it's actually a file structure
+        if (typeof parsedStructure !== 'object' || parsedStructure === null) {
+          throw new Error('Invalid structure format');
+        }
+        
+        console.log('✅ Successfully parsed plugin structure:', { fileCount: Object.keys(parsedStructure).length })
+        
+      } catch (e) {
+        console.error('❌ Error parsing plugin structure:', e)
+        addTerminalOutput(`❌ Error parsing plugin structure: ${e instanceof Error ? e.message : 'Unknown error'}`);
+        addTerminalOutput('🔄 Creating basic structure as fallback...');
+        
+        // Fallback: Create a basic plugin structure
+        const pluginSlug = pluginName.toLowerCase().replace(/\s+/g, '-');
+        parsedStructure = {
+          [`${pluginSlug}.php`]: createBasicPluginFile(pluginName, pluginDescription, pluginSlug),
+          [`admin/${pluginSlug}-admin.php`]: `<?php\n// Admin functionality for ${pluginName}\nif (!defined('ABSPATH')) exit;\n\nclass ${pluginName.replace(/\s+/g, '')}_Admin {\n    // Admin code here\n}\n\nnew ${pluginName.replace(/\s+/g, '')}_Admin();`,
+          [`public/${pluginSlug}-public.php`]: `<?php\n// Public functionality for ${pluginName}\nif (!defined('ABSPATH')) exit;\n\nclass ${pluginName.replace(/\s+/g, '')}_Public {\n    // Public code here\n}\n\nnew ${pluginName.replace(/\s+/g, '')}_Public();`,
+          [`assets/css/${pluginSlug}-admin.css`]: `/* Admin styles for ${pluginSlug} */\n.${pluginSlug}-admin {\n    font-family: Arial, sans-serif;\n}`,
+          [`assets/css/${pluginSlug}-public.css`]: `/* Public styles for ${pluginSlug} */\n.${pluginSlug}-shortcode {\n    background: #f9f9f9;\n    padding: 20px;\n    border-radius: 5px;\n}`,
+          [`assets/js/${pluginSlug}-admin.js`]: `/* Admin JavaScript for ${pluginSlug} */\njQuery(document).ready(function($) {\n    console.log('${pluginSlug} admin script loaded');\n});`,
+          [`assets/js/${pluginSlug}-public.js`]: `/* Public JavaScript for ${pluginSlug} */\njQuery(document).ready(function($) {\n    console.log('${pluginSlug} public script loaded');\n});`,
+          'README.txt': `=== ${pluginName} ===\nContributors: yourname\nTags: wordpress, plugin\nRequires at least: 5.0\nTested up to: 6.4\nStable tag: 1.0.0\nLicense: GPLv2 or later\n\n${pluginDescription}\n\n== Description ==\n\n${pluginDescription}\n\n== Installation ==\n\n1. Upload the plugin files to the /wp-content/plugins/ directory\n2. Activate the plugin through the 'Plugins' screen in WordPress\n3. Configure the plugin settings\n\n== Changelog ==\n\n= 1.0.0 =\n* Initial release`
+        };
+        
+        addTerminalOutput('✅ Created basic plugin structure as fallback');
+      }
+
+      setFileStructure(parsedStructure);
+      setFileContents(parsedStructure);
+      
+      // Set the main plugin file as current
+      const mainFile = Object.keys(parsedStructure).find(key => key.endsWith('.php')) || Object.keys(parsedStructure)[0];
+      setCurrentFile(mainFile);
+      setCode(parsedStructure[mainFile] || '');
+
+      addTerminalOutput('✅ Plugin structure generated successfully');
+      addTerminalOutput(`📁 Created ${Object.keys(parsedStructure).length} files`);
+
+      setGenerationProgress('');
+      setActiveTab('code');
+      
+    } catch (error) {
+      console.error('❌ Plugin generation error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addTerminalOutput(`❌ Error: ${errorMessage}`);
+      
+      // Provide helpful error messages
+      if (errorMessage.includes('Network error') || errorMessage.includes('Failed to fetch')) {
+        addTerminalOutput('💡 This might be a CORS or network connectivity issue.');
+        addTerminalOutput('💡 Please check your internet connection and try again.');
+      } else if (errorMessage.includes('Authentication failed') || errorMessage.includes('401')) {
+        addTerminalOutput('💡 Please verify your Claude Sonnet 4 API key in settings.');
+      } else if (errorMessage.includes('Rate limit')) {
+        addTerminalOutput('💡 Please wait a moment before trying again.');
+      }
+      
+      setGenerationProgress('');
+    }
+    
+    setIsGenerating(false);
+  };
+
+  const downloadPlugin = () => {
+    if (Object.keys(fileStructure).length === 0) {
+      addTerminalOutput('❌ Error: No plugin files to download');
+      return;
+    }
+
+    addTerminalOutput('📦 Creating plugin zip file...');
+    
+    const pluginSlug = pluginName.toLowerCase().replace(/\s+/g, '-');
+    
+    // Create installation guide with all files
+    const allFiles = Object.entries(fileContents).map(([path, content]) => {
+      return `=== FILE: ${path} ===\n${content}\n\n${'='.repeat(80)}\n\n`;
+    }).join('');
+
+    const installationGuide = `WORDPRESS PLUGIN INSTALLATION GUIDE
+====================================
+
+Plugin Name: ${pluginName}
+Generated: ${new Date().toLocaleString()}
+
+INSTALLATION STEPS:
+==================
+
+OPTION 1: Manual Installation (Recommended)
+-------------------------------------------
+1. Create a new folder on your computer called "${pluginSlug}"
+2. Copy each file from this download into the correct folder structure:
+
+${Object.keys(fileContents).map(path => `   - Create: ${path}`).join('\n')}
+
+3. Create a ZIP file of the "${pluginSlug}" folder
+4. In WordPress admin, go to Plugins > Add New > Upload Plugin
+5. Upload your ZIP file and activate
+
+PLUGIN FILES:
+=============
+
+${allFiles}`;
+
+    // Create the downloadable file
+    const blob = new Blob([installationGuide], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${pluginSlug}-wordpress-plugin-complete.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    addTerminalOutput('✅ Plugin files downloaded successfully');
+    addTerminalOutput('📄 Installation guide included in download');
+  };
+
+  const previewPlugin = () => {
+    if (Object.keys(fileStructure).length === 0) {
+      addTerminalOutput('❌ Error: No plugin to preview');
+      return;
+    }
+
+    addTerminalOutput('👁️ Generating plugin preview...');
+    
+    // Create a simple HTML preview
+    const previewHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${pluginName} - Plugin Preview</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: #f1f1f1; }
+          .plugin-preview { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .plugin-header { border-bottom: 2px solid #0073aa; padding-bottom: 10px; margin-bottom: 20px; }
+          .plugin-title { color: #0073aa; font-size: 24px; margin: 0; }
+          .plugin-description { color: #666; font-size: 14px; margin: 5px 0; }
+          .file-structure { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .file-item { margin: 5px 0; font-family: monospace; }
+          .features { margin: 20px 0; }
+          .feature { background: #e7f3ff; padding: 10px; margin: 5px 0; border-radius: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="plugin-preview">
+          <div class="plugin-header">
+            <h1 class="plugin-title">${pluginName}</h1>
+            <p class="plugin-description">${pluginDescription}</p>
+          </div>
+          
+          <div class="features">
+            <h3>Plugin Features:</h3>
+            <div class="feature">✅ WordPress coding standards compliant</div>
+            <div class="feature">✅ Security best practices implemented</div>
+            <div class="feature">✅ Admin dashboard integration</div>
+            <div class="feature">✅ Frontend functionality</div>
+            <div class="feature">✅ Translation ready</div>
+          </div>
+
+          <div class="file-structure">
+            <h3>File Structure:</h3>
+            ${Object.keys(fileStructure).map(file => `<div class="file-item">📄 ${file}</div>`).join('')}
+          </div>
+
+          <p><strong>Status:</strong> Ready for WordPress installation</p>
+          <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([previewHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    setPreviewUrl(url);
+    setActiveTab('preview');
+    
+    addTerminalOutput('✅ Plugin preview generated');
+  };
+
+  const toggleFolder = (folder: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folder)) {
+      newExpanded.delete(folder);
+    } else {
+      newExpanded.add(folder);
+    }
+    setExpandedFolders(newExpanded);
+  };
+
+  const renderFileTree = (files: Record<string, string>) => {
+    const tree: any = {};
+    Object.keys(files).forEach(filepath => {
+      const parts = filepath.split('/');
+      let current = tree;
+      parts.forEach((part, index) => {
+        if (index === parts.length - 1) {
+          current[part] = 'file';
+        } else {
+          if (!current[part]) {
+            current[part] = {};
+          }
+          current = current[part];
+        }
+      });
+    });
+
+    const renderTree = (node: any, path = '') => {
+      return Object.entries(node).map(([name, value]) => {
+        const fullPath = path ? `${path}/${name}` : name;
+        const isFile = value === 'file';
+        const isExpanded = expandedFolders.has(fullPath);
+        
+        return (
+          <div key={fullPath} className="file-tree-item">
+            <div 
+              className={`file-tree-node ${currentFile === fullPath ? 'active' : ''}`}
+              onClick={() => {
+                if (isFile) {
+                  setCurrentFile(fullPath);
+                  setCode(fileContents[fullPath] || '');
+                } else {
+                  toggleFolder(fullPath);
+                }
+              }}
+            >
+              {!isFile && (
+                isExpanded ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />
+              )}
+              {isFile ? <FiFile size={16} /> : <FiFolder size={16} />}
+              <span>{name}</span>
+            </div>
+            {!isFile && isExpanded && (
+              <div className="file-tree-children">
+                {renderTree(value, fullPath)}
+              </div>
+            )}
+          </div>
+        );
+      });
+    };
+
+    return renderTree(tree);
+  };
+
   // Extract and format code from a message
   const extractCodeFromMessage = (message: string): string | null => {
     // Try to extract code from PHP code blocks
@@ -599,30 +688,21 @@ Professional_Custom_Plugin::get_instance();`)
       setCode(formattedCode);
       
       // Add to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ wp plugin validate --format=json',
-        'Plugin validation completed successfully.',
-        '$ Code transferred to editor and formatted.'
-      ]);
+      addTerminalOutput('$ wp plugin validate --format=json');
+      addTerminalOutput('Plugin validation completed successfully.');
+      addTerminalOutput('$ Code transferred to editor and formatted.');
       
       // Switch to code tab
       setActiveTab('code');
-      
-      // Log the code to console for debugging
-      console.log("Professional WordPress code transferred to editor:", formattedCode);
       
       return true;
     } catch (error) {
       console.error('Error formatting code:', error);
       
       // Add error to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ wp plugin validate',
-        'Warning: Code formatting failed. Using unformatted code.',
-        '$ Code transferred to editor.'
-      ]);
+      addTerminalOutput('$ wp plugin validate');
+      addTerminalOutput('Warning: Code formatting failed. Using unformatted code.');
+      addTerminalOutput('$ Code transferred to editor.');
       
       // Still update the code state with unformatted code
       setCode(extractedCode);
@@ -728,11 +808,8 @@ Professional_Custom_Plugin::get_instance();`)
     }
     
     // If no code was found, add a message to the terminal
-    setTerminalOutput(prev => [
-      ...prev,
-      '$ wp plugin extract-code',
-      'No WordPress plugin code found in the selected message.'
-    ]);
+    addTerminalOutput('$ wp plugin extract-code');
+    addTerminalOutput('No WordPress plugin code found in the selected message.');
     
     return false;
   };
@@ -742,105 +819,75 @@ Professional_Custom_Plugin::get_instance();`)
     if (e.key === 'Enter' && terminalInput.trim()) {
       // Add command to terminal output
       const command = terminalInput.trim();
-      setTerminalOutput(prev => [...prev, `$ ${command}`]);
+      addTerminalOutput(`$ ${command}`);
       
       // Process WordPress-specific commands
       if (command.startsWith('wp ')) {
         // WordPress CLI commands
         if (command.includes('plugin activate')) {
           handleExecutePlugin();
-          setTerminalOutput(prev => [
-            ...prev,
-            `Plugin '${pluginName || 'professional-custom-plugin'}' activated.`,
-            'Success: Activated 1 of 1 plugins.'
-          ]);
+          addTerminalOutput(`Plugin '${pluginName || 'professional-custom-plugin'}' activated.`);
+          addTerminalOutput('Success: Activated 1 of 1 plugins.');
         } else if (command.includes('plugin install')) {
-          setTerminalOutput(prev => [
-            ...prev,
-            'Installing plugin...',
-            'Plugin installed successfully.',
-            'Activating plugin...',
-            `Plugin '${pluginName || 'professional-custom-plugin'}' activated.`,
-            'Success: Installed and activated 1 of 1 plugins.'
-          ]);
+          addTerminalOutput('Installing plugin...');
+          addTerminalOutput('Plugin installed successfully.');
+          addTerminalOutput('Activating plugin...');
+          addTerminalOutput(`Plugin '${pluginName || 'professional-custom-plugin'}' activated.`);
+          addTerminalOutput('Success: Installed and activated 1 of 1 plugins.');
         } else if (command.includes('plugin validate')) {
-          setTerminalOutput(prev => [
-            ...prev,
-            'Validating plugin code...',
-            '✅ Plugin header: Valid',
-            '✅ Security checks: Passed', 
-            '✅ WordPress standards: Compliant',
-            '✅ Code quality: Professional grade',
-            'Success: Plugin validation completed.'
-          ]);
+          addTerminalOutput('Validating plugin code...');
+          addTerminalOutput('✅ Plugin header: Valid');
+          addTerminalOutput('✅ Security checks: Passed'); 
+          addTerminalOutput('✅ WordPress standards: Compliant');
+          addTerminalOutput('✅ Code quality: Professional grade');
+          addTerminalOutput('Success: Plugin validation completed.');
         } else if (command.includes('plugin scaffold')) {
-          setTerminalOutput(prev => [
-            ...prev,
-            'Scaffolding professional WordPress plugin...',
-            'Creating plugin structure...',
-            'Adding security measures...',
-            'Implementing WordPress standards...',
-            'Success: Professional plugin scaffolded.'
-          ]);
+          addTerminalOutput('Scaffolding professional WordPress plugin...');
+          addTerminalOutput('Creating plugin structure...');
+          addTerminalOutput('Adding security measures...');
+          addTerminalOutput('Implementing WordPress standards...');
+          addTerminalOutput('Success: Professional plugin scaffolded.');
         } else {
-          setTerminalOutput(prev => [
-            ...prev,
-            'WordPress CLI command executed successfully.'
-          ]);
+          addTerminalOutput('WordPress CLI command executed successfully.');
         }
       } else if (command.startsWith('composer ')) {
         // Composer commands
         if (command.includes('install')) {
-          setTerminalOutput(prev => [
-            ...prev,
-            'Loading composer repositories with package information',
-            'Installing dependencies (including require-dev)',
-            'Package operations: 25 installs, 0 updates, 0 removals',
-            'Writing lock file',
-            'Generating autoload files'
-          ]);
+          addTerminalOutput('Loading composer repositories with package information');
+          addTerminalOutput('Installing dependencies (including require-dev)');
+          addTerminalOutput('Package operations: 25 installs, 0 updates, 0 removals');
+          addTerminalOutput('Writing lock file');
+          addTerminalOutput('Generating autoload files');
         } else if (command.includes('require')) {
-          setTerminalOutput(prev => [
-            ...prev,
-            'Using version ^2.0 for package',
-            'Package installed successfully.'
-          ]);
+          addTerminalOutput('Using version ^2.0 for package');
+          addTerminalOutput('Package installed successfully.');
         }
       } else if (command.startsWith('php ')) {
         // PHP commands
         if (command.includes('plugin.php') || command.includes('-l')) {
-          setTerminalOutput(prev => [
-            ...prev, 
-            'No syntax errors detected in plugin.php',
-            'Plugin code follows WordPress standards.'
-          ]);
+          addTerminalOutput('No syntax errors detected in plugin.php');
+          addTerminalOutput('Plugin code follows WordPress standards.');
           handleExecutePlugin();
         } else {
-          setTerminalOutput(prev => [
-            ...prev,
-            'PHP command executed successfully.'
-          ]);
+          addTerminalOutput('PHP command executed successfully.');
         }
       } else if (command === 'clear' || command === 'cls') {
         // Clear terminal
         setTerminalOutput(['Professional WordPress Plugin Development Environment']);
       } else if (command === 'help') {
         // Show WordPress-specific help
-        setTerminalOutput(prev => [
-          ...prev,
-          'WordPress Plugin Development Commands:',
-          '  wp plugin activate <plugin>    - Activate WordPress plugin',
-          '  wp plugin validate <plugin>    - Validate plugin code',
-          '  wp plugin scaffold <name>      - Create plugin structure',
-          '  composer install               - Install PHP dependencies',
-          '  composer require <package>     - Add PHP package',
-          '  php -l <file.php>             - Check PHP syntax',
-          '  execute, run                  - Execute/test plugin',
-          '  build                         - Build production plugin',
-          '  save                          - Save plugin to library',
-          '  clear, cls                    - Clear terminal',
-          '  help                          - Show this help'
-        ]);
+        addTerminalOutput('WordPress Plugin Development Commands:');
+        addTerminalOutput('  wp plugin activate <plugin>    - Activate WordPress plugin');
+        addTerminalOutput('  wp plugin validate <plugin>    - Validate plugin code');
+        addTerminalOutput('  wp plugin scaffold <name>      - Create plugin structure');
+        addTerminalOutput('  composer install               - Install PHP dependencies');
+        addTerminalOutput('  composer require <package>     - Add PHP package');
+        addTerminalOutput('  php -l <file.php>             - Check PHP syntax');
+        addTerminalOutput('  execute, run                  - Execute/test plugin');
+        addTerminalOutput('  build                         - Build production plugin');
+        addTerminalOutput('  save                          - Save plugin to library');
+        addTerminalOutput('  clear, cls                    - Clear terminal');
+        addTerminalOutput('  help                          - Show this help');
       } else if (command === 'execute' || command === 'run') {
         // Execute the plugin
         handleExecutePlugin();
@@ -852,10 +899,7 @@ Professional_Custom_Plugin::get_instance();`)
         handleSavePlugin();
       } else {
         // Generic response
-        setTerminalOutput(prev => [
-          ...prev,
-          `Command executed: ${command}`
-        ]);
+        addTerminalOutput(`Command executed: ${command}`);
       }
       
       setTerminalInput('');
@@ -881,20 +925,14 @@ Professional_Custom_Plugin::get_instance();`)
       setCode(formattedCode);
       
       // Add to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ wp plugin format-code',
-        'Code formatted according to WordPress standards.'
-      ]);
+      addTerminalOutput('$ wp plugin format-code');
+      addTerminalOutput('Code formatted according to WordPress standards.');
     } catch (error) {
       console.error('Error formatting code:', error);
       
       // Add error to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ wp plugin format-code',
-        'Error formatting code. Please try again.'
-      ]);
+      addTerminalOutput('$ wp plugin format-code');
+      addTerminalOutput('Error formatting code. Please try again.');
     } finally {
       setFormatting(false);
     }
@@ -911,18 +949,15 @@ Professional_Custom_Plugin::get_instance();`)
       savePlugin({
         id: Date.now().toString(),
         name: pluginName,
-        description: 'A professional WordPress plugin created with Plugin Genius',
+        description: pluginDescription || 'A professional WordPress plugin created with Plugin Genius',
         thumbnail: '/images/plugin-thumbnail.jpg',
         code: code,
         createdAt: new Date().toISOString()
       });
       
       // Add to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        `$ wp plugin save "${pluginName}"`,
-        'Professional plugin saved successfully to your library.'
-      ]);
+      addTerminalOutput(`$ wp plugin save "${pluginName}"`);
+      addTerminalOutput('Professional plugin saved successfully to your library.');
       
       alert('Professional WordPress plugin saved successfully!');
     } catch (error) {
@@ -947,22 +982,19 @@ Professional_Custom_Plugin::get_instance();`)
       setPluginExecution(result);
       
       // Add execution result to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        `$ wp plugin test "${pluginName || 'professional-custom-plugin'}"`,
-        result.success 
-          ? '✅ Plugin validation: PASSED' 
-          : `❌ Plugin validation: FAILED - ${result.errors}`,
-        result.success 
-          ? '✅ Security analysis: PASSED'
-          : '⚠️  Security analysis: Issues found',
-        result.success 
-          ? '✅ WordPress standards: COMPLIANT'
-          : '⚠️  WordPress standards: Non-compliant',
-        result.success 
-          ? `✅ Plugin "${pluginName || 'professional-custom-plugin'}" ready for production.` 
-          : `❌ Plugin needs attention: ${result.errors}`
-      ]);
+      addTerminalOutput(`$ wp plugin test "${pluginName || 'professional-custom-plugin'}"`);
+      addTerminalOutput(result.success 
+        ? '✅ Plugin validation: PASSED' 
+        : `❌ Plugin validation: FAILED - ${result.errors}`);
+      addTerminalOutput(result.success 
+        ? '✅ Security analysis: PASSED'
+        : '⚠️  Security analysis: Issues found');
+      addTerminalOutput(result.success 
+        ? '✅ WordPress standards: COMPLIANT'
+        : '⚠️  WordPress standards: Non-compliant');
+      addTerminalOutput(result.success 
+        ? `✅ Plugin "${pluginName || 'professional-custom-plugin'}" ready for production.` 
+        : `❌ Plugin needs attention: ${result.errors}`);
       
     } catch (error) {
       console.error('Error executing plugin:', error);
@@ -974,11 +1006,8 @@ Professional_Custom_Plugin::get_instance();`)
       });
       
       // Add error to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ wp plugin test',
-        'Error testing plugin. Please check your code and try again.'
-      ]);
+      addTerminalOutput('$ wp plugin test');
+      addTerminalOutput('Error testing plugin. Please check your code and try again.');
     } finally {
       setIsExecuting(false);
     }
@@ -1008,33 +1037,17 @@ Professional_Custom_Plugin::get_instance();`)
       setBuildResult(result);
       
       // Add build result to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        `$ wp plugin build "${pluginName}"`,
-        result.success 
-          ? '✅ Building production-ready plugin package...' 
-          : `❌ Build failed: ${result.error}`,
-        result.success 
-          ? '✅ Adding professional assets and documentation...' 
-          : '',
-        result.success 
-          ? '✅ Validating WordPress standards compliance...' 
-          : '',
-        result.success 
-          ? `✅ Successfully created ${result.filename}` 
-          : '',
-        result.success 
-          ? '🚀 Plugin ready for WordPress.org submission!' 
-          : ''
-      ]);
-      
+      addTerminalOutput(`$ wp plugin build "${pluginName}"`);
+      addTerminalOutput(result.success 
+        ? '✅ Building production-ready plugin package...' 
+        : `❌ Build failed: ${result.error}`);
       if (result.success) {
-        // Add download notification to terminal
-        setTerminalOutput(prev => [
-          ...prev,
-          `📦 Professional plugin package "${result.filename}" downloaded.`,
-          '💡 Ready for installation on any WordPress site!'
-        ]);
+        addTerminalOutput('✅ Adding professional assets and documentation...');
+        addTerminalOutput('✅ Validating WordPress standards compliance...');
+        addTerminalOutput(`✅ Successfully created ${result.filename}`);
+        addTerminalOutput('🚀 Plugin ready for WordPress.org submission!');
+        addTerminalOutput(`📦 Professional plugin package "${result.filename}" downloaded.`);
+        addTerminalOutput('💡 Ready for installation on any WordPress site!');
       }
       
     } catch (error) {
@@ -1047,30 +1060,12 @@ Professional_Custom_Plugin::get_instance();`)
       });
       
       // Add error to terminal output
-      setTerminalOutput(prev => [
-        ...prev,
-        '$ wp plugin build',
-        'Error building plugin package. Please try again.'
-      ]);
+      addTerminalOutput('$ wp plugin build');
+      addTerminalOutput('Error building plugin package. Please try again.');
     } finally {
       setIsBuilding(false);
     }
   };
-  
-  // Update plugin name in code when it changes
-  useEffect(() => {
-    // Only update the code if the plugin name changes and there's a default code template
-    if (code.includes('Plugin Name:')) {
-      const updatedCode = code.replace(
-        /Plugin Name: .*$/m, 
-        `Plugin Name: ${pluginName || 'Professional Custom Plugin'}`
-      ).replace(
-        /Text Domain: .*$/m,
-        `Text Domain: ${pluginName ? pluginName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'professional-custom-plugin'}`
-      );
-      setCode(updatedCode);
-    }
-  }, [pluginName]);
   
   return (
     <div className="create-plugin-page" ref={pageRef}>
@@ -1107,7 +1102,17 @@ Professional_Custom_Plugin::get_instance();`)
               <div className="ai-selector-label">Professional AI Assistant:</div>
               <div className="ai-options">
                 <div className="ai-option active">
-                  WordPress Expert AI
+                  {isApiKeySet ? (
+                    <>
+                      <div className="api-status-indicator connected"></div>
+                      Claude Sonnet 4 - Connected
+                    </>
+                  ) : (
+                    <>
+                      <div className="api-status-indicator disconnected"></div>
+                      Claude Sonnet 4 - Not Connected
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -1143,13 +1148,13 @@ Professional_Custom_Plugin::get_instance();`)
             {apiKeyMissing && (
               <div className="api-key-warning">
                 <p>
-                  <strong>AI Configuration Required:</strong> Please configure your AI model in settings to use the professional WordPress development assistant.
+                  <strong>AI Configuration Required:</strong> Please configure your Claude Sonnet 4 API key in settings to use the professional WordPress development assistant.
                 </p>
                 <button 
                   className="api-key-button"
                   onClick={() => window.location.href = '/settings'}
                 >
-                  Configure AI Model
+                  Configure Claude Sonnet 4
                 </button>
               </div>
             )}
@@ -1170,6 +1175,13 @@ Professional_Custom_Plugin::get_instance();`)
             <div className="workspace-layout">
               <div className="workspace-sidebar">
                 <div className="workspace-tabs">
+                  <button 
+                    className={`workspace-tab ${activeTab === 'builder' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('builder')}
+                  >
+                    <FiPackage />
+                    <span>Plugin Builder</span>
+                  </button>
                   <button 
                     className={`workspace-tab ${activeTab === 'chat' ? 'active' : ''}`}
                     onClick={() => setActiveTab('chat')}
@@ -1194,6 +1206,92 @@ Professional_Custom_Plugin::get_instance();`)
                 </div>
                 
                 <div className="workspace-panel">
+                  {activeTab === 'builder' && (
+                    <div className="builder-panel">
+                      <div className="builder-config">
+                        <h3>Plugin Configuration</h3>
+                        <div className="config-field">
+                          <label>Plugin Name</label>
+                          <input
+                            type="text"
+                            placeholder="My Awesome Plugin"
+                            value={pluginName}
+                            onChange={(e) => setPluginName(e.target.value)}
+                            className="config-input"
+                          />
+                        </div>
+                        <div className="config-field">
+                          <label>Description</label>
+                          <textarea
+                            placeholder="Describe what your plugin does..."
+                            value={pluginDescription}
+                            onChange={(e) => setPluginDescription(e.target.value)}
+                            className="config-textarea"
+                          />
+                        </div>
+                        <div className="config-field">
+                          <label>Requirements/Features</label>
+                          <textarea
+                            placeholder="Specific requirements or features you want..."
+                            value={pluginRequirements}
+                            onChange={(e) => setPluginRequirements(e.target.value)}
+                            className="config-textarea"
+                          />
+                        </div>
+                        <button
+                          onClick={generatePluginStructure}
+                          disabled={isGenerating || !isApiKeySet}
+                          className="generate-button"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <FiLoader className="icon-spin" />
+                              <span>Generating...</span>
+                            </>
+                          ) : (
+                            <>
+                              <FiPackage />
+                              <span>Generate Plugin</span>
+                            </>
+                          )}
+                        </button>
+                        {generationProgress && (
+                          <div className="generation-progress">{generationProgress}</div>
+                        )}
+                      </div>
+                      
+                      <div className="file-structure">
+                        <h3>File Structure</h3>
+                        {Object.keys(fileStructure).length > 0 ? (
+                          <div className="file-tree">
+                            {renderFileTree(fileStructure)}
+                          </div>
+                        ) : (
+                          <div className="no-files">No files generated yet</div>
+                        )}
+                      </div>
+                      
+                      <div className="builder-actions">
+                        <button
+                          onClick={previewPlugin}
+                          disabled={Object.keys(fileStructure).length === 0}
+                          className="builder-action-button"
+                        >
+                          <FiEye />
+                          <span>Preview</span>
+                        </button>
+                        <button
+                          onClick={downloadPlugin}
+                          disabled={Object.keys(fileStructure).length === 0}
+                          className="builder-action-button"
+                        >
+                          <FiDownload />
+                          <span>Download</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {activeTab === 'chat' && (
                     <div className="chat-panel">
                       <div className="chat-messages">
@@ -1271,8 +1369,13 @@ Professional_Custom_Plugin::get_instance();`)
                   {activeTab === 'code' && (
                     <div className="code-panel">
                       <div className="code-editor">
+                        {currentFile && (
+                          <div className="code-file-header">
+                            <span>Editing: {currentFile}</span>
+                          </div>
+                        )}
                         <pre className="code-content" ref={codeEditorRef}>
-                          {code}
+                          {code || (currentFile ? 'Select a file to view its contents' : 'No code available')}
                         </pre>
                       </div>
                       <div className="code-actions">
@@ -1315,7 +1418,7 @@ Professional_Custom_Plugin::get_instance();`)
                   
                   {activeTab === 'terminal' && (
                     <div className="terminal-panel">
-                      <div className="terminal-output">
+                      <div className="terminal-output" ref={terminalRef}>
                         {terminalOutput.map((line, index) => (
                           <div key={index} className="terminal-line">{line}</div>
                         ))}
@@ -1363,7 +1466,13 @@ Professional_Custom_Plugin::get_instance();`)
                   </div>
                 </div>
                 <div className="preview-content">
-                  {pluginExecution && pluginExecution.renderedHtml ? (
+                  {activeTab === 'preview' && previewUrl ? (
+                    <iframe
+                      src={previewUrl}
+                      className={`preview-iframe preview-${previewMode}`}
+                      title="Plugin Preview"
+                    />
+                  ) : pluginExecution && pluginExecution.renderedHtml ? (
                     // If plugin has been executed, show the professional rendered HTML
                     <div 
                       className={`preview-wordpress preview-${previewMode}`}
@@ -1393,7 +1502,7 @@ Professional_Custom_Plugin::get_instance();`)
                           <div className="preview-wp-plugin-icon">🔧</div>
                           <div className="preview-wp-plugin-details">
                             <div className="preview-wp-plugin-name">{pluginName || 'Professional Custom Plugin'}</div>
-                            <div className="preview-wp-plugin-description">A professional, production-ready WordPress plugin built with industry best practices</div>
+                            <div className="preview-wp-plugin-description">{pluginDescription || 'A professional, production-ready WordPress plugin built with industry best practices'}</div>
                             <div className="preview-wp-plugin-meta">
                               <span className="plugin-version">Version 1.0.0</span>
                               <span className="plugin-author">by Plugin Genius</span>

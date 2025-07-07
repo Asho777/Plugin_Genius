@@ -22,7 +22,7 @@ const SettingsPage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   
-  // AI Configuration state
+  // AI Configuration state - simplified for Claude Sonnet 4 only
   const [aiConfig, setAiConfig] = useState<AIModelConfig>({
     id: DEFAULT_AI_MODEL.id,
     name: DEFAULT_AI_MODEL.name,
@@ -125,27 +125,16 @@ const SettingsPage = () => {
     setSaveSuccess(false);
     
     try {
-      // Validate required fields
-      if (!aiConfig.name.trim()) {
-        setSaveError('Model name is required');
-        setLoading(false);
-        return;
-      }
-      
-      if (!aiConfig.apiEndpoint.trim()) {
-        setSaveError('API endpoint is required');
-        setLoading(false);
-        return;
-      }
-      
+      // Validate required fields - only API key is required now
       if (!aiConfig.apiKey.trim()) {
         setSaveError('API key is required');
         setLoading(false);
         return;
       }
       
-      if (!aiConfig.model.trim()) {
-        setSaveError('Model is required');
+      // Basic validation for Claude API key format
+      if (!aiConfig.apiKey.startsWith('sk-ant-')) {
+        setSaveError('Invalid Claude Sonnet 4 API key format. API key should start with "sk-ant-"');
         setLoading(false);
         return;
       }
@@ -364,70 +353,53 @@ const SettingsPage = () => {
               
               {activeTab === 'ai-config' && (
                 <div className="ai-config-panel">
-                  <h2 className="panel-title">AI Model Configuration</h2>
+                  <h2 className="panel-title">Claude Sonnet 4 Configuration</h2>
                   <p className="panel-description">
-                    Configure your AI model connection details. Plugin Genius will use this configuration 
-                    to generate WordPress plugins. Your configuration is securely stored and never shared.
+                    Configure your Claude Sonnet 4 API connection. Plugin Genius uses Claude Sonnet 4 
+                    to generate professional WordPress plugins. Your API key is securely stored locally and never shared.
                   </p>
                   
                   <div className="ai-config-form">
                     <div className="form-group">
-                      <label htmlFor="ai-name">Model Name *</label>
+                      <label htmlFor="ai-name">AI Model</label>
                       <input
                         id="ai-name"
                         type="text"
-                        placeholder="Enter a name for your AI model"
                         value={aiConfig.name}
-                        onChange={(e) => setAiConfig({...aiConfig, name: e.target.value})}
-                        required
+                        disabled
+                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
                       />
                       <div className="help-text">
-                        <p>A friendly name to identify your AI model configuration.</p>
+                        <p>Plugin Genius is optimized for Claude Sonnet 4 - the most advanced AI model for WordPress development.</p>
                       </div>
                     </div>
                     
                     <div className="form-group">
-                      <label htmlFor="api-endpoint">API Endpoint *</label>
-                      <input
-                        id="api-endpoint"
-                        type="url"
-                        placeholder="https://api.openai.com/v1/chat/completions"
-                        value={aiConfig.apiEndpoint}
-                        onChange={(e) => setAiConfig({...aiConfig, apiEndpoint: e.target.value})}
-                        required
-                      />
-                      <div className="help-text">
-                        <p>The full URL endpoint for your AI model API.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="api-key">API Key *</label>
+                      <label htmlFor="api-key">Claude Sonnet 4 API Key *</label>
                       <input
                         id="api-key"
                         type="password"
-                        placeholder="Enter your API key"
+                        placeholder="sk-ant-..."
                         value={aiConfig.apiKey}
                         onChange={(e) => setAiConfig({...aiConfig, apiKey: e.target.value})}
                         required
                       />
                       <div className="help-text">
-                        <p>Your API key for authentication with the AI service.</p>
+                        <p>Your Claude Sonnet 4 API key from Anthropic. Get yours at <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" style={{color: 'var(--color-primary)'}}>console.anthropic.com</a></p>
                       </div>
                     </div>
                     
                     <div className="form-group">
-                      <label htmlFor="model">Model *</label>
+                      <label htmlFor="model">Model Version</label>
                       <input
                         id="model"
                         type="text"
-                        placeholder="gpt-4"
                         value={aiConfig.model}
-                        onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
-                        required
+                        disabled
+                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
                       />
                       <div className="help-text">
-                        <p>The specific model identifier (e.g., gpt-4, claude-3-opus, gemini-pro).</p>
+                        <p>Using the latest Claude 3.5 Sonnet model optimized for professional WordPress development.</p>
                       </div>
                     </div>
                     
@@ -436,12 +408,12 @@ const SettingsPage = () => {
                       <textarea
                         id="system-prompt"
                         rows={4}
-                        placeholder="Enter the system prompt for your AI model"
+                        placeholder="Enter the system prompt for Claude Sonnet 4"
                         value={aiConfig.systemPrompt}
                         onChange={(e) => setAiConfig({...aiConfig, systemPrompt: e.target.value})}
                       />
                       <div className="help-text">
-                        <p>Instructions that define how the AI should behave when generating plugins.</p>
+                        <p>Instructions that define how Claude Sonnet 4 should behave when generating WordPress plugins.</p>
                       </div>
                     </div>
                     

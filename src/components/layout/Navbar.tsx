@@ -15,7 +15,6 @@ const Navbar = () => {
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [userName, setUserName] = useState<string | null>(null)
   const profileMenuRef = useRef<HTMLDivElement>(null)
-  const [forceUpdate, setForceUpdate] = useState(0)
 
   // Function to fetch user profile data
   const fetchUserProfile = async () => {
@@ -61,17 +60,6 @@ const Navbar = () => {
     console.log('Location changed, fetching profile')
     fetchUserProfile()
   }, [location.pathname])
-
-  // Force re-render periodically to check for updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('Periodic profile check')
-      fetchUserProfile()
-      setForceUpdate(prev => prev + 1)
-    }, 5000) // Check every 5 seconds
-    
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     // Close mobile menu when route changes
@@ -126,9 +114,6 @@ const Navbar = () => {
     return location.pathname === path
   }
 
-  // Debug rendering
-  console.log('Navbar rendering with avatar:', userAvatar, 'and force update:', forceUpdate)
-
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -159,7 +144,6 @@ const Navbar = () => {
             <button className="profile-button" onClick={toggleProfileMenu}>
               <div className="avatar">
                 <AvatarImage
-                  key={`avatar-${forceUpdate}`}
                   src={userAvatar}
                   alt="User avatar"
                   fallbackText={userName?.charAt(0) || 'U'}
