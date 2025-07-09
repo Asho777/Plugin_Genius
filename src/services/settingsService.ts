@@ -223,16 +223,57 @@ export const uploadAvatar = async (file: File): Promise<string | null> => {
     const publicUrl = urlData.publicUrl
     console.log('Generated public URL:', publicUrl)
 
-    // Update user profile directly with new avatar URL
-    const { data: updateData, error: updateError } = await supabase
+    // First check if profile exists
+    const { data: existingProfile, error: checkError } = await supabase
       .from('user_profiles')
-      .update({ 
-        avatar_url: publicUrl,
-        updated_at: new Date().toISOString()
-      })
+      .select('id')
       .eq('user_id', user.id)
-      .select()
-      .single()
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing profile:', checkError)
+      
+      // Clean up uploaded file if check fails
+      await supabase.storage
+        .from('user-content')
+        .remove([storagePath])
+      
+      throw new Error(`Profile check failed: ${checkError.message}`)
+    }
+
+    let updateData, updateError
+
+    if (existingProfile) {
+      // Update existing profile
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({ 
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle()
+
+      updateData = data
+      updateError = error
+    } else {
+      // Create new profile
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert({ 
+          user_id: user.id,
+          avatar_url: publicUrl,
+          email: user.email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      updateData = data
+      updateError = error
+    }
 
     if (updateError) {
       console.error('Profile update error:', updateError)
@@ -263,18 +304,52 @@ export const updateUserProfile = async (profile: Partial<UserProfile>): Promise<
       throw new Error('No authenticated user')
     }
 
+    // First check if profile exists
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing profile:', checkError)
+      throw checkError
+    }
+
     const updateData = {
       ...profile,
       user_id: user.id,
       updated_at: new Date().toISOString()
     }
 
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update(updateData)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    let data, error
+
+    if (existingProfile) {
+      // Update existing profile
+      const result = await supabase
+        .from('user_profiles')
+        .update(updateData)
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle()
+
+      data = result.data
+      error = result.error
+    } else {
+      // Create new profile
+      const result = await supabase
+        .from('user_profiles')
+        .insert({
+          ...updateData,
+          email: user.email,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      data = result.data
+      error = result.error
+    }
 
     if (error) {
       console.error('Error updating user profile:', error)
@@ -297,18 +372,52 @@ export const updateUserSecurity = async (security: Partial<UserSecurity>): Promi
       throw new Error('No authenticated user')
     }
 
+    // First check if security record exists
+    const { data: existingRecord, error: checkError } = await supabase
+      .from('user_security')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing security record:', checkError)
+      throw checkError
+    }
+
     const updateData = {
       ...security,
       user_id: user.id,
       updated_at: new Date().toISOString()
     }
 
-    const { data, error } = await supabase
-      .from('user_security')
-      .update(updateData)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    let data, error
+
+    if (existingRecord) {
+      // Update existing record
+      const result = await supabase
+        .from('user_security')
+        .update(updateData)
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle()
+
+      data = result.data
+      error = result.error
+    } else {
+      // Create new record
+      const result = await supabase
+        .from('user_security')
+        .insert({
+          ...updateData,
+          two_factor_enabled: updateData.two_factor_enabled ?? false,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      data = result.data
+      error = result.error
+    }
 
     if (error) {
       console.error('Error updating user security:', error)
@@ -337,13 +446,9 @@ export const updateUserPassword = async (currentPassword: string, newPassword: s
     // Update the password_last_changed field
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await supabase
-        .from('user_security')
-        .update({ 
-          password_last_changed: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
+      await updateUserSecurity({ 
+        password_last_changed: new Date().toISOString()
+      })
     }
 
     return true
@@ -362,18 +467,54 @@ export const updateUserNotifications = async (notifications: Partial<UserNotific
       throw new Error('No authenticated user')
     }
 
+    // First check if notifications record exists
+    const { data: existingRecord, error: checkError } = await supabase
+      .from('user_notifications')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing notifications record:', checkError)
+      throw checkError
+    }
+
     const updateData = {
       ...notifications,
       user_id: user.id,
       updated_at: new Date().toISOString()
     }
 
-    const { data, error } = await supabase
-      .from('user_notifications')
-      .update(updateData)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    let data, error
+
+    if (existingRecord) {
+      // Update existing record
+      const result = await supabase
+        .from('user_notifications')
+        .update(updateData)
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle()
+
+      data = result.data
+      error = result.error
+    } else {
+      // Create new record with defaults
+      const result = await supabase
+        .from('user_notifications')
+        .insert({
+          ...updateData,
+          email_notifications: updateData.email_notifications ?? true,
+          update_notifications: updateData.update_notifications ?? true,
+          marketing_notifications: updateData.marketing_notifications ?? false,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      data = result.data
+      error = result.error
+    }
 
     if (error) {
       console.error('Error updating user notifications:', error)
@@ -396,18 +537,54 @@ export const updateUserPreferences = async (preferences: Partial<UserPreferences
       throw new Error('No authenticated user')
     }
 
+    // First check if preferences record exists
+    const { data: existingRecord, error: checkError } = await supabase
+      .from('user_preferences')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing preferences record:', checkError)
+      throw checkError
+    }
+
     const updateData = {
       ...preferences,
       user_id: user.id,
       updated_at: new Date().toISOString()
     }
 
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .update(updateData)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    let data, error
+
+    if (existingRecord) {
+      // Update existing record
+      const result = await supabase
+        .from('user_preferences')
+        .update(updateData)
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle()
+
+      data = result.data
+      error = result.error
+    } else {
+      // Create new record with defaults
+      const result = await supabase
+        .from('user_preferences')
+        .insert({
+          ...updateData,
+          language: updateData.language ?? 'en',
+          timezone: updateData.timezone ?? 'utc',
+          dark_mode: updateData.dark_mode ?? false,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      data = result.data
+      error = result.error
+    }
 
     if (error) {
       console.error('Error updating user preferences:', error)
@@ -462,13 +639,9 @@ export const getActiveProfileImage = async (): Promise<ProfileImage | null> => {
       .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No active profile image found
-        return null
-      }
       console.error('Error fetching active profile image:', error)
       throw error
     }
@@ -495,11 +668,15 @@ export const deleteProfileImage = async (imageId: string): Promise<boolean> => {
       .select('storage_path')
       .eq('id', imageId)
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (fetchError) {
       console.error('Error fetching image for deletion:', fetchError)
       throw fetchError
+    }
+
+    if (!imageData) {
+      throw new Error('Image not found')
     }
 
     // Delete from storage

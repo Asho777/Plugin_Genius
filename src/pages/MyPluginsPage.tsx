@@ -1,34 +1,70 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiSearch, FiPlus, FiInfo, FiX } from 'react-icons/fi'
+import { FiSearch, FiPlus, FiInfo, FiX, FiLoader } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import MyPluginCard from '../components/plugins/MyPluginCard'
-import { getSavedPlugins, removePlugin } from '../services/pluginService'
+import { getSavedPlugins, removeSavedPlugin } from '../services/pluginService'
 import { Plugin } from './TemplatesPage'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import '../styles/my-plugins.css'
 
 const MyPluginsPage = () => {
   const [plugins, setPlugins] = useState<Plugin[]>([])
   const [filteredPlugins, setFilteredPlugins] = useState<Plugin[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Load saved plugins from Supabase
+  const loadPlugins = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        setError('Please log in to view your saved plugins')
+        setPlugins([])
+        setFilteredPlugins([])
+        return
+      }
+
+      const savedPlugins = await getSavedPlugins()
+      // Ensure we always have an array
+      const pluginsArray = Array.isArray(savedPlugins) ? savedPlugins : []
+      setPlugins(pluginsArray)
+      setFilteredPlugins(pluginsArray)
+    } catch (err) {
+      console.error('Error loading plugins:', err)
+      setError('Failed to load your saved plugins')
+      setPlugins([])
+      setFilteredPlugins([])
+    } finally {
+      setLoading(false)
+    }
+  }
   
   useEffect(() => {
-    // Load saved plugins from local storage
-    const savedPlugins = getSavedPlugins()
-    setPlugins(savedPlugins)
-    setFilteredPlugins(savedPlugins)
+    loadPlugins()
   }, [])
   
   useEffect(() => {
+    // Ensure plugins is always an array before filtering
+    if (!Array.isArray(plugins)) {
+      setFilteredPlugins([])
+      return
+    }
+
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
       const filtered = plugins.filter(plugin => 
         plugin.name.toLowerCase().includes(term) || 
         plugin.description.toLowerCase().includes(term) ||
-        (plugin.tags && plugin.tags.some(tag => tag.toLowerCase().includes(term)))
+        (plugin.tags && Array.isArray(plugin.tags) && plugin.tags.some(tag => tag.toLowerCase().includes(term)))
       )
       setFilteredPlugins(filtered)
     } else {
@@ -40,14 +76,55 @@ const MyPluginsPage = () => {
     setSearchTerm(e.target.value)
   }
   
-  const handleRemovePlugin = (pluginId: string) => {
-    // Remove plugin from local storage
-    removePlugin(pluginId)
-    
-    // Update state
-    const updatedPlugins = plugins.filter(plugin => plugin.id !== pluginId)
-    setPlugins(updatedPlugins)
+  const handleRemovePlugin = async (pluginId: string) => {
+    try {
+      // Remove plugin from Supabase
+      await removeSavedPlugin(pluginId)
+      
+      // Update local state - ensure we're working with arrays
+      const updatedPlugins = Array.isArray(plugins) ? plugins.filter(plugin => plugin.id !== pluginId) : []
+      setPlugins(updatedPlugins)
+    } catch (err) {
+      console.error('Error removing plugin:', err)
+      alert('Failed to remove plugin. Please try again.')
+    }
   }
+
+  if (loading) {
+    return (
+      <div className="my-plugins-page">
+        <Navbar />
+        <main className="my-plugins-content">
+          <div className="loading-container">
+            <FiLoader className="loading-spinner" />
+            <p>Loading your saved plugins...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="my-plugins-page">
+        <Navbar />
+        <main className="my-plugins-content">
+          <div className="error-container">
+            <p className="error-message">{error}</p>
+            <button onClick={loadPlugins} className="retry-button">
+              Try Again
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  // Ensure filteredPlugins is always an array before rendering
+  const safeFilteredPlugins = Array.isArray(filteredPlugins) ? filteredPlugins : []
+  const safePlugins = Array.isArray(plugins) ? plugins : []
 
   return (
     <div className="my-plugins-page">
@@ -106,7 +183,7 @@ const MyPluginsPage = () => {
         
         <section className="my-plugins-list">
           <div className="container">
-            {plugins.length === 0 ? (
+            {safePlugins.length === 0 ? (
               <motion.div 
                 className="empty-state"
                 initial={{ opacity: 0 }}
@@ -123,7 +200,7 @@ const MyPluginsPage = () => {
                   <span>Browse Plugins</span>
                 </Link>
               </motion.div>
-            ) : filteredPlugins.length === 0 ? (
+            ) : safeFilteredPlugins.length === 0 ? (
               <div className="no-results">
                 <h3>No plugins found</h3>
                 <p>Try adjusting your search to find what you're looking for.</p>
@@ -135,12 +212,12 @@ const MyPluginsPage = () => {
               <>
                 <div className="results-header">
                   <p className="results-count">
-                    Showing <span>{filteredPlugins.length}</span> of <span>{plugins.length}</span> plugins
+                    Showing <span>{safeFilteredPlugins.length}</span> of <span>{safePlugins.length}</span> plugins
                   </p>
                 </div>
                 
                 <div className="plugins-grid">
-                  {filteredPlugins.map((plugin, index) => (
+                  {safeFilteredPlugins.map((plugin, index) => (
                     <MyPluginCard 
                       key={plugin.id}
                       plugin={plugin}

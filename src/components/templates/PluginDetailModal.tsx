@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiX, FiStar, FiDownload, FiCalendar, FiExternalLink, FiBookmark, FiCheck } from 'react-icons/fi'
+import { FiX, FiStar, FiDownload, FiCalendar, FiExternalLink, FiBookmark, FiCheck, FiLoader } from 'react-icons/fi'
 import { Plugin } from '../../pages/TemplatesPage'
-import { savePlugin, getSavedPlugins } from '../../services/pluginService'
+import { savePlugin, isPluginSaved } from '../../services/pluginService'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
 
 interface PluginDetailModalProps {
   plugin: Plugin
@@ -13,12 +14,28 @@ interface PluginDetailModalProps {
 const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }) => {
   const navigate = useNavigate()
   const [isSaved, setIsSaved] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true)
   
   // Check if plugin is saved on component mount
   useEffect(() => {
-    const savedPlugins = getSavedPlugins()
-    const pluginIsSaved = savedPlugins.some(p => p.id === plugin.id)
-    setIsSaved(pluginIsSaved)
+    const checkSavedStatus = async () => {
+      try {
+        setIsCheckingStatus(true)
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const pluginIsSaved = await isPluginSaved(plugin.id)
+          setIsSaved(pluginIsSaved)
+        }
+      } catch (error) {
+        console.error('Error checking plugin saved status:', error)
+      } finally {
+        setIsCheckingStatus(false)
+      }
+    }
+    
+    checkSavedStatus()
   }, [plugin.id])
   
   const formatDate = (dateString: string) => {
@@ -67,18 +84,44 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
     window.open(plugin.detailUrl, '_blank')
   }
   
-  const handleAddToMyPlugins = (e: React.MouseEvent) => {
+  const handleAddToMyPlugins = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    if (!isSaved) {
-      savePlugin(plugin)
-      setIsSaved(true)
-    }
+    if (isSaved || isLoading) return
     
-    // Navigate to the correct route
-    navigate('/my-plugins')
+    try {
+      setIsLoading(true)
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        alert('Please log in to save plugins')
+        return
+      }
+      
+      // Save the plugin to the user's collection
+      await savePlugin(plugin)
+      setIsSaved(true)
+      
+      // Show success message
+      console.log('Plugin saved successfully!')
+      
+      // Optional: Navigate to my plugins page after a short delay
+      setTimeout(() => {
+        navigate('/my-plugins')
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Error saving plugin:', error)
+      alert('Failed to save plugin. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
+  
+  // Ensure tags is always an array
+  const pluginTags = Array.isArray(plugin.tags) ? plugin.tags : []
   
   return (
     <AnimatePresence>
@@ -129,11 +172,17 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
                 </button>
                 
                 <button 
-                  className="action-button secondary"
+                  className={`action-button ${isSaved ? 'success' : 'secondary'}`}
                   onClick={handleAddToMyPlugins}
                   type="button"
+                  disabled={isLoading || isCheckingStatus}
                 >
-                  {isSaved ? (
+                  {isLoading ? (
+                    <>
+                      <FiLoader className="loading-spinner" />
+                      <span>Saving...</span>
+                    </>
+                  ) : isSaved ? (
                     <>
                       <FiCheck />
                       <span>Added to My Plugins</span>
@@ -167,14 +216,16 @@ const PluginDetailModal: React.FC<PluginDetailModalProps> = ({ plugin, onClose }
               <p>{plugin.description}</p>
             </div>
             
-            <div className="plugin-detail-tags">
-              <h3>Tags</h3>
-              <div className="tags-container">
-                {plugin.tags.map((tag, index) => (
-                  <span key={index} className="plugin-tag">{tag}</span>
-                ))}
+            {pluginTags.length > 0 && (
+              <div className="plugin-detail-tags">
+                <h3>Tags</h3>
+                <div className="tags-container">
+                  {pluginTags.map((tag, index) => (
+                    <span key={index} className="plugin-tag">{tag}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </motion.div>
       </motion.div>
