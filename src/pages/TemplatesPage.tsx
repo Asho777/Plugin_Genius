@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { FiSearch, FiStar, FiDownload, FiExternalLink, FiFilter, FiGrid, FiList, FiLoader } from 'react-icons/fi'
+import { motion } from 'framer-motion'
+import { FiSearch, FiFilter, FiStar, FiDownload, FiInfo, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
+import PluginCard from '../components/templates/PluginCard'
+import PluginDetailModal from '../components/templates/PluginDetailModal'
+import LoadingPluginsModal from '../components/templates/LoadingPluginsModal'
 import { fetchWordPressPlugins } from '../services/wordpressApi'
+import { useSearch } from '../context/SearchContext'
 import '../styles/templates.css'
-import { useScrollReset } from '../hooks/useScrollReset'
-
-// Force scroll to top immediately before component even renders
-if (typeof window !== 'undefined') {
-  window.scrollTo(0, 0);
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-}
+import '../styles/loading-plugins.css'
 
 export interface Plugin {
   id: string
@@ -28,370 +25,361 @@ export interface Plugin {
 }
 
 const TemplatesPage = () => {
-  // Use the scroll reset hook
-  useScrollReset();
-  
-  const [plugins, setPlugins] = useState<Plugin[]>([])
-  const [filteredPlugins, setFilteredPlugins] = useState<Plugin[]>([])
+  const { searchState, setSearchResults, setLoading, setError } = useSearch()
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [sortBy, setSortBy] = useState('popularity')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [hasSearched, setHasSearched] = useState(false)
-
-  // Categories for filtering
+  const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [showLoadingModal, setShowLoadingModal] = useState(false)
+  const [filters, setFilters] = useState({
+    category: 'all',
+    minRating: 0,
+    sortBy: 'popular'
+  })
+  const [useFilters, setUseFilters] = useState(false)
+  
   const categories = [
-    'all',
-    'ecommerce',
-    'seo',
-    'security',
-    'performance',
-    'social',
-    'forms',
-    'gallery',
-    'backup',
-    'analytics'
+    { id: 'all', name: 'All Categories' },
+    { id: 'ecommerce', name: 'E-Commerce' },
+    { id: 'seo', name: 'SEO' },
+    { id: 'security', name: 'Security' },
+    { id: 'social', name: 'Social Media' },
+    { id: 'forms', name: 'Forms' },
+    { id: 'gallery', name: 'Gallery' },
+    { id: 'performance', name: 'Performance' }
   ]
 
-  // Load initial plugins on component mount
+  // Initialize search term from context when component mounts
   useEffect(() => {
-    loadPlugins()
-  }, [])
+    if (searchState.searchTerm) {
+      setSearchTerm(searchState.searchTerm)
+    }
+  }, [searchState.searchTerm])
 
-  // Filter and sort plugins when dependencies change
-  useEffect(() => {
-    filterAndSortPlugins()
-  }, [plugins, searchTerm, selectedCategory, sortBy])
-
-  const loadPlugins = async (searchQuery = '') => {
-    setIsLoading(true)
-    setError(null)
-    
+  // Function to search for plugins
+  const searchPlugins = async (term: string, applyFilters = false) => {
     try {
-      const fetchedPlugins = await fetchWordPressPlugins(searchQuery)
-      setPlugins(fetchedPlugins)
-      setHasSearched(!!searchQuery)
-    } catch (err) {
-      console.error('Error loading plugins:', err)
-      setError('Failed to load WordPress plugins. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    loadPlugins(searchTerm)
-  }
-
-  const filterAndSortPlugins = () => {
-    let filtered = [...plugins]
-
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(plugin => {
-        const pluginTags = Array.isArray(plugin.tags) ? plugin.tags : []
-        return pluginTags.some(tag => 
-          tag.toLowerCase().includes(selectedCategory.toLowerCase())
-        )
-      })
-    }
-
-    // Sort plugins
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name)
-        case 'rating':
-          return b.rating - a.rating
-        case 'downloads':
-          return b.downloads - a.downloads
-        case 'updated':
-          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
-        case 'popularity':
-        default:
-          return b.downloads - a.downloads
+      setShowLoadingModal(true) // Show loading modal
+      setLoading(true)
+      setError(null)
+      setUseFilters(applyFilters) // Store whether to use filters
+      
+      // Fetch plugins from WordPress API
+      const results = await fetchWordPressPlugins(term)
+      
+      // Check if results are relevant to the search term
+      if (term && results.length === 0) {
+        setError(`No plugins found for "${term}". Try a different search term.`)
+        setSearchResults([], term)
+      } else {
+        setSearchResults(results, term)
       }
+    } catch (err) {
+      setError('Failed to load plugins. Please try again later.')
+      console.error('Error loading plugins:', err)
+    } finally {
+      setLoading(false)
+      setShowLoadingModal(false) // Hide loading modal
+    }
+  }
+  
+  // Initial load - only if no previous search results exist
+  useEffect(() => {
+    if (!searchState.hasSearched) {
+      searchPlugins('')
+    }
+  }, [searchState.hasSearched])
+  
+  // Apply filters to the plugins
+  const filteredPlugins = React.useMemo(() => {
+    // If we're not using filters, return all plugins
+    if (!useFilters) {
+      return searchState.plugins
+    }
+    
+    let results = [...searchState.plugins]
+    
+    // Apply category filter
+    if (filters.category !== 'all') {
+      results = results.filter(plugin => 
+        plugin.tags.some(tag => tag.toLowerCase().includes(filters.category.toLowerCase()))
+      )
+    }
+    
+    // Apply rating filter
+    if (filters.minRating > 0) {
+      results = results.filter(plugin => plugin.rating >= filters.minRating)
+    }
+    
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'popular':
+        results.sort((a, b) => b.downloads - a.downloads)
+        break
+      case 'rating':
+        results.sort((a, b) => b.rating - a.rating)
+        break
+      case 'newest':
+        results.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+        break
+      default:
+        break
+    }
+    
+    return results
+  }, [searchState.plugins, filters, useFilters])
+  
+  // Handle search input change
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+  }
+  
+  // Handle search form submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    searchPlugins(searchTerm, showFilters) // Only apply filters if they're visible
+  }
+  
+  // Handle quick search (without filters)
+  const handleQuickSearch = () => {
+    searchPlugins(searchTerm, false) // Don't apply filters
+  }
+  
+  const handleFilterChange = (key: string, value: string | number) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
+  
+  const toggleFilters = () => {
+    setShowFilters(!showFilters)
+  }
+  
+  const clearFilters = () => {
+    setFilters({
+      category: 'all',
+      minRating: 0,
+      sortBy: 'popular'
     })
-
-    setFilteredPlugins(filtered)
   }
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M'
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K'
-    }
-    return num.toString()
+  
+  const openPluginDetail = (plugin: Plugin) => {
+    setSelectedPlugin(plugin)
   }
-
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    } catch {
-      return 'Unknown'
-    }
-  }
-
-  const renderStars = (rating: number) => {
-    const stars = []
-    const fullStars = Math.floor(rating)
-    const hasHalfStar = rating % 1 !== 0
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<FiStar key={i} className="star filled" />)
-    }
-
-    if (hasHalfStar) {
-      stars.push(<FiStar key="half" className="star half" />)
-    }
-
-    const emptyStars = 5 - Math.ceil(rating)
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<FiStar key={`empty-${i}`} className="star" />)
-    }
-
-    return stars
+  
+  const closePluginDetail = () => {
+    setSelectedPlugin(null)
   }
 
   return (
     <div className="templates-page">
       <Navbar />
       
-      {/* Loading Popup */}
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div 
-            className="loading-popup-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
+      <main className="templates-content">
+        <section className="templates-header">
+          <div className="container">
+            <motion.h1 
+              className="page-title yellow-title"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              style={{ color: '#ffc107' }} // Inline style to force yellow color
+            >
+              Browse WordPress Plugins
+            </motion.h1>
+            
+            <motion.p 
+              className="page-subtitle"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              Discover and integrate popular WordPress plugins into your custom solution
+            </motion.p>
+            
+            <motion.form 
+              className="search-container"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              onSubmit={handleSearchSubmit}
+            >
+              <div className="search-input-wrapper">
+                <FiSearch className="search-icon" />
+                <input 
+                  type="text" 
+                  className="search-input" 
+                  placeholder="Search plugins..." 
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+                {searchTerm && (
+                  <button 
+                    type="button" 
+                    className="search-clear" 
+                    onClick={() => {
+                      setSearchTerm('')
+                      searchPlugins('')
+                    }}
+                  >
+                    <FiX />
+                  </button>
+                )}
+              </div>
+              
+              <button 
+                type="button"
+                className={`filter-toggle ${showFilters ? 'active' : ''}`} 
+                onClick={toggleFilters}
+              >
+                <FiFilter />
+                <span>Filters</span>
+                {showFilters ? <FiChevronUp /> : <FiChevronDown />}
+              </button>
+              
+              <button 
+                type="button" 
+                className="search-button quick-search" 
+                onClick={handleQuickSearch}
+              >
+                Quick Search
+              </button>
+              
+              <button type="submit" className="search-button">
+                {showFilters ? "Search with Filters" : "Search"}
+              </button>
+            </motion.form>
+            
             <motion.div 
-              className="loading-popup"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
+              className="filters-container"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ 
+                height: showFilters ? 'auto' : 0,
+                opacity: showFilters ? 1 : 0
+              }}
               transition={{ duration: 0.3 }}
             >
-              <div className="loading-popup-content">
-                <motion.div 
-                  className="loading-spinner"
-                  animate={{ rotate: 360 }}
-                  transition={{ 
-                    repeat: Infinity, 
-                    duration: 1.5, 
-                    ease: "linear" 
-                  }}
-                >
-                  <FiLoader />
-                </motion.div>
-                <h3 className="loading-popup-title">Searching for your Plugins</h3>
+              <div className="filters-content">
+                <div className="filter-group">
+                  <label className="filter-label">Category</label>
+                  <select 
+                    className="filter-select"
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                  >
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="filter-group">
+                  <label className="filter-label">Minimum Rating</label>
+                  <select 
+                    className="filter-select"
+                    value={filters.minRating}
+                    onChange={(e) => handleFilterChange('minRating', Number(e.target.value))}
+                  >
+                    <option value={0}>Any Rating</option>
+                    <option value={3}>3+ Stars</option>
+                    <option value={4}>4+ Stars</option>
+                    <option value={4.5}>4.5+ Stars</option>
+                  </select>
+                </div>
+                
+                <div className="filter-group">
+                  <label className="filter-label">Sort By</label>
+                  <select 
+                    className="filter-select"
+                    value={filters.sortBy}
+                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  >
+                    <option value="popular">Most Popular</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="newest">Recently Updated</option>
+                  </select>
+                </div>
+                
+                <button className="filter-clear" onClick={clearFilters}>
+                  Clear Filters
+                </button>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      <main className="templates-content">
-        <header className="templates-header">
-          <motion.div 
-            className="header-content"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="page-title">Browse WordPress Plugins</h1>
-            <p className="page-subtitle">Discover and explore thousands of professional WordPress plugins from the official repository</p>
-          </motion.div>
-        </header>
-
-        <section className="search-section">
-          <div className="container">
-            <form className="search-form" onSubmit={handleSearch}>
-              <div className="search-input-container">
-                <FiSearch className="search-icon" />
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="Search WordPress plugins..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <button type="submit" className="search-button" disabled={isLoading}>
-                  {isLoading ? <FiLoader className="icon-spin" /> : 'Search'}
-                </button>
-              </div>
-            </form>
           </div>
         </section>
-
-        <section className="filters-section">
+        
+        <section className="templates-results">
           <div className="container">
-            <div className="filters-container">
-              <div className="filter-group">
-                <label className="filter-label">
-                  <FiFilter />
-                  Category:
-                </label>
-                <select
-                  className="filter-select"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </select>
+            {searchState.isLoading ? (
+              <div className="loading-container">
+                <div className="loading-spinner">
+                  <motion.div 
+                    className="spinner"
+                    animate={{ rotate: 360 }}
+                    transition={{ 
+                      repeat: Infinity, 
+                      duration: 1.5, 
+                      ease: "linear" 
+                    }}
+                  />
+                </div>
+                <p>Loading plugins...</p>
               </div>
-
-              <div className="filter-group">
-                <label className="filter-label">Sort by:</label>
-                <select
-                  className="filter-select"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                >
-                  <option value="popularity">Popularity</option>
-                  <option value="name">Name</option>
-                  <option value="rating">Rating</option>
-                  <option value="downloads">Downloads</option>
-                  <option value="updated">Last Updated</option>
-                </select>
-              </div>
-
-              <div className="view-controls">
-                <button
-                  className={`view-control ${viewMode === 'grid' ? 'active' : ''}`}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <FiGrid />
-                </button>
-                <button
-                  className={`view-control ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  <FiList />
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="plugins-section">
-          <div className="container">
-            {error && (
-              <div className="error-message">
-                <p>{error}</p>
-                <button onClick={() => loadPlugins(searchTerm)} className="retry-button">
+            ) : searchState.error ? (
+              <div className="error-container">
+                <FiInfo className="error-icon" />
+                <p>{searchState.error}</p>
+                <button className="retry-button" onClick={() => searchPlugins(searchTerm, useFilters)}>
                   Try Again
                 </button>
               </div>
-            )}
-
-            {!isLoading && !error && filteredPlugins.length === 0 && hasSearched && (
+            ) : filteredPlugins.length === 0 ? (
               <div className="no-results">
                 <h3>No plugins found</h3>
-                <p>Try adjusting your search terms or filters</p>
+                <p>Try adjusting your search or filters to find what you're looking for.</p>
+                <button className="filter-clear" onClick={clearFilters}>
+                  Clear All Filters
+                </button>
               </div>
-            )}
-
-            {!isLoading && !error && filteredPlugins.length > 0 && (
-              <div className="plugins-results">
+            ) : (
+              <>
                 <div className="results-header">
                   <p className="results-count">
-                    {filteredPlugins.length} plugin{filteredPlugins.length !== 1 ? 's' : ''} found
+                    Showing <span>{filteredPlugins.length}</span> plugins
+                    {searchState.searchTerm && <span className="search-term"> for "{searchState.searchTerm}"</span>}
+                    {!searchState.searchTerm && <span className="search-term"> (popular plugins)</span>}
+                    {useFilters && <span className="filter-indicator"> with filters applied</span>}
                   </p>
                 </div>
-
-                <div className={`plugins-grid ${viewMode}`}>
-                  {filteredPlugins.map((plugin, index) => {
-                    const pluginTags = Array.isArray(plugin.tags) ? plugin.tags : []
-                    
-                    return (
-                      <motion.div
-                        key={plugin.id}
-                        className="plugin-card"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: index * 0.05 }}
-                        whileHover={{ y: -5 }}
-                      >
-                        <div className="plugin-image">
-                          <img
-                            src={plugin.imageUrl}
-                            alt={plugin.name}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = 'https://s.w.org/plugins/geopattern-icon/default.svg';
-                            }}
-                          />
-                        </div>
-                        
-                        <div className="plugin-content">
-                          <h3 className="plugin-title">{plugin.name}</h3>
-                          <p className="plugin-author">by {plugin.author}</p>
-                          <p className="plugin-description">{plugin.description}</p>
-                          
-                          <div className="plugin-meta">
-                            <div className="plugin-rating">
-                              <div className="stars">
-                                {renderStars(plugin.rating)}
-                              </div>
-                              <span className="rating-text">({plugin.rating.toFixed(1)})</span>
-                            </div>
-                            
-                            <div className="plugin-stats">
-                              <span className="stat">
-                                <FiDownload />
-                                {formatNumber(plugin.downloads)}
-                              </span>
-                              <span className="stat">
-                                Updated: {formatDate(plugin.lastUpdated)}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="plugin-tags">
-                            {pluginTags.slice(0, 3).map(tag => (
-                              <span key={tag} className="plugin-tag">{tag}</span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="plugin-actions">
-                          <a
-                            href={plugin.detailUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="plugin-action primary"
-                          >
-                            <FiExternalLink />
-                            View Details
-                          </a>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
+                
+                <div className="plugins-grid">
+                  {filteredPlugins.map((plugin, index) => (
+                    <PluginCard 
+                      key={plugin.id}
+                      plugin={plugin}
+                      onClick={() => openPluginDetail(plugin)}
+                      delay={0.1 + (index % 12) * 0.05}
+                    />
+                  ))}
                 </div>
-              </div>
+              </>
             )}
           </div>
         </section>
       </main>
-
+      
       <Footer />
+      
+      {selectedPlugin && (
+        <PluginDetailModal 
+          plugin={selectedPlugin}
+          onClose={closePluginDetail}
+        />
+      )}
+      
+      <LoadingPluginsModal isVisible={showLoadingModal} />
     </div>
   )
 }

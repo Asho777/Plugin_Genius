@@ -76,15 +76,20 @@ const AvatarImage: React.FC<AvatarImageProps> = ({
     }
   }, [src])
 
+  // Don't apply size classes if navbar-avatar class is present (let CSS handle it)
+  const isNavbarAvatar = className.includes('navbar-avatar')
+  
   const sizeClasses = {
     sm: 'w-8 h-8 text-sm',
     md: 'w-10 h-10 text-base',
     lg: 'w-16 h-16 text-xl'
   }
 
+  const appliedSizeClass = isNavbarAvatar ? '' : sizeClasses[size]
+
   if (!imageSrc || imageError) {
     return (
-      <div className={`avatar-placeholder ${sizeClasses[size]} ${className}`}>
+      <div className={`avatar-placeholder ${appliedSizeClass} ${className}`}>
         {fallbackText.charAt(0).toUpperCase()}
       </div>
     )
@@ -94,7 +99,7 @@ const AvatarImage: React.FC<AvatarImageProps> = ({
     <img 
       src={imageSrc}
       alt={alt}
-      className={`avatar-image ${sizeClasses[size]} ${className}`}
+      className={`avatar-image ${appliedSizeClass} ${className}`}
       onError={() => {
         console.error('Avatar image failed to load in img element:', imageSrc)
         setImageError(true)

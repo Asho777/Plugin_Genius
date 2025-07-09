@@ -103,8 +103,8 @@
 
 .avatar-image,
 .avatar-placeholder {
-  width: 32px;
-  height: 32px;
+  width: 55px !important;
+  height: 55px !important;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-primary);
@@ -122,6 +122,8 @@
 
 .navbar-avatar {
   border: 2px solid var(--color-primary);
+  width: 55px !important;
+  height: 55px !important;
 }
 
 .username {
