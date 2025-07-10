@@ -100,9 +100,13 @@ const TemplatesPage = () => {
     
     // Apply category filter
     if (filters.category !== 'all') {
-      results = results.filter(plugin => 
-        plugin.tags.some(tag => tag.toLowerCase().includes(filters.category.toLowerCase()))
-      )
+      results = results.filter(plugin => {
+        // Ensure tags is always an array before calling .some()
+        const pluginTags = Array.isArray(plugin.tags) ? plugin.tags : []
+        return pluginTags.some(tag => 
+          tag && tag.toLowerCase().includes(filters.category.toLowerCase())
+        )
+      })
     }
     
     // Apply rating filter
