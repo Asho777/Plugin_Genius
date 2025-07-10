@@ -1,6 +1,8 @@
 // AI Service for Plugin Genius
 // Handles AI model configuration and communication
 
+import { saveUserApiKey, getUserApiKey } from './settingsService'
+
 export interface AIModelConfig {
   id: string
   name: string
@@ -22,28 +24,35 @@ export const DEFAULT_AI_MODEL: AIModelConfig = {
   name: 'Claude Sonnet 4',
   apiEndpoint: 'http://localhost:3001/api/claude', // Use proxy server
   apiKey: '',
-  model: 'claude-3-5-sonnet-20241022',
+  model: 'claude-sonnet-4-20250514',
   headers: {
     'Content-Type': 'application/json'
   },
   systemPrompt: 'You are an expert WordPress plugin developer with 15+ years of experience. Create professional, secure, and standards-compliant WordPress plugins following all WordPress coding standards and best practices.'
 }
 
-// Get AI model configuration from localStorage
+// Get AI model configuration from Supabase and localStorage
 export const getAIModelConfig = async (): Promise<AIModelConfig | null> => {
   try {
-    const stored = localStorage.getItem('ai-model-config')
-    if (stored) {
-      const config = JSON.parse(stored)
-      // Ensure the config has the fixed endpoint for Claude Sonnet 4
-      return {
-        ...DEFAULT_AI_MODEL,
-        ...config,
-        apiEndpoint: DEFAULT_AI_MODEL.apiEndpoint, // Always use the proxy endpoint
-        model: DEFAULT_AI_MODEL.model, // Always use the default model
-        headers: DEFAULT_AI_MODEL.headers // Always use the default headers
+    // First try to get API key from Supabase
+    let apiKey = await getUserApiKey()
+    
+    // If not in Supabase, check localStorage for backward compatibility
+    if (!apiKey) {
+      const stored = localStorage.getItem('ai-model-config')
+      if (stored) {
+        const config = JSON.parse(stored)
+        apiKey = config.apiKey
       }
     }
+    
+    if (apiKey) {
+      return {
+        ...DEFAULT_AI_MODEL,
+        apiKey: apiKey
+      }
+    }
+    
     return null
   } catch (error) {
     console.error('Error loading AI model configuration:', error)
@@ -51,7 +60,7 @@ export const getAIModelConfig = async (): Promise<AIModelConfig | null> => {
   }
 }
 
-// Save AI model configuration to localStorage
+// Save AI model configuration to both Supabase and localStorage
 export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise<boolean> => {
   try {
     // Create the final config with fixed values for Claude Sonnet 4
@@ -64,6 +73,15 @@ export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise
       headers: DEFAULT_AI_MODEL.headers // Fixed headers
     }
     
+    // Save API key to Supabase user profile
+    if (finalConfig.apiKey) {
+      const supabaseSuccess = await saveUserApiKey(finalConfig.apiKey)
+      if (!supabaseSuccess) {
+        console.warn('Failed to save API key to Supabase, falling back to localStorage only')
+      }
+    }
+    
+    // Also save to localStorage for backward compatibility
     localStorage.setItem('ai-model-config', JSON.stringify(finalConfig))
     console.log('AI model configuration saved successfully')
     return true

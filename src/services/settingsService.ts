@@ -7,6 +7,7 @@ export interface UserProfile {
   email?: string
   company?: string
   avatar_url?: string
+  api_key?: string
   created_at?: string
   updated_at?: string
 }
@@ -157,6 +158,102 @@ export const getUserPreferences = async (): Promise<UserPreferences | null> => {
     return data
   } catch (error) {
     console.error('Error in getUserPreferences:', error)
+    return null
+  }
+}
+
+// Save API key to user profile
+export const saveUserApiKey = async (apiKey: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    // First check if profile exists
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing profile:', checkError)
+      throw checkError
+    }
+
+    const updateData = {
+      user_id: user.id,
+      api_key: apiKey,
+      updated_at: new Date().toISOString()
+    }
+
+    let data, error
+
+    if (existingProfile) {
+      // Update existing profile
+      const result = await supabase
+        .from('user_profiles')
+        .update(updateData)
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle()
+
+      data = result.data
+      error = result.error
+    } else {
+      // Create new profile
+      const result = await supabase
+        .from('user_profiles')
+        .insert({
+          ...updateData,
+          email: user.email,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      data = result.data
+      error = result.error
+    }
+
+    if (error) {
+      console.error('Error saving API key to user profile:', error)
+      throw error
+    }
+
+    console.log('API key saved to user profile successfully')
+    return true
+  } catch (error) {
+    console.error('Error in saveUserApiKey:', error)
+    return false
+  }
+}
+
+// Get API key from user profile
+export const getUserApiKey = async (): Promise<string | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('No authenticated user')
+    }
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('api_key')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Error fetching user API key:', error)
+      return null
+    }
+
+    return data?.api_key || null
+  } catch (error) {
+    console.error('Error in getUserApiKey:', error)
     return null
   }
 }

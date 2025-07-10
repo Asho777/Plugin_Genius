@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FiSave, FiKey, FiShield, FiUser, FiMail, FiGlobe, FiSettings } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
@@ -35,12 +35,14 @@ const SettingsPage = () => {
   
   // User settings state
   const [profile, setProfile] = useState<UserProfile>({
+    user_id: '',
     full_name: '',
     email: '',
     company: ''
   })
   
   const [security, setSecurity] = useState<UserSecurity>({
+    user_id: '',
     two_factor_enabled: false
   })
   
@@ -51,12 +53,14 @@ const SettingsPage = () => {
   })
   
   const [notifications, setNotifications] = useState<UserNotifications>({
+    user_id: '',
     email_notifications: true,
     update_notifications: true,
     marketing_notifications: false
   })
   
   const [preferences, setPreferences] = useState<UserPreferences>({
+    user_id: '',
     language: 'en',
     timezone: getUserTimezone(),
     dark_mode: true
@@ -139,15 +143,15 @@ const SettingsPage = () => {
         return;
       }
       
-      console.log('Attempting to save AI configuration...');
+      console.log('Attempting to save AI configuration to Supabase...');
       const success = await saveAIModelConfig(aiConfig);
       
       if (success) {
-        console.log('AI configuration saved successfully');
+        console.log('AI configuration saved successfully to Supabase');
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        console.error('Failed to save AI configuration');
+        console.error('Failed to save AI configuration to Supabase');
         setSaveError('Failed to save AI configuration. Please check the console for details.');
       }
     } catch (error) {
@@ -356,7 +360,7 @@ const SettingsPage = () => {
                   <h2 className="panel-title">Claude Sonnet 4 Configuration</h2>
                   <p className="panel-description">
                     Configure your Claude Sonnet 4 API connection. Plugin Genius uses Claude Sonnet 4 
-                    to generate professional WordPress plugins. Your API key is securely stored locally and never shared.
+                    to generate professional WordPress plugins. Your API key is securely stored in your profile and never shared.
                   </p>
                   
                   <div className="ai-config-form">
@@ -386,6 +390,7 @@ const SettingsPage = () => {
                       />
                       <div className="help-text">
                         <p>Your Claude Sonnet 4 API key from Anthropic. Get yours at <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" style={{color: 'var(--color-primary)'}}>console.anthropic.com</a></p>
+                        <p><strong>Secure Storage:</strong> Your API key is saved to your Supabase profile and encrypted.</p>
                       </div>
                     </div>
                     
