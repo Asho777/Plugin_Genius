@@ -12,6 +12,9 @@ import DocsPage from './pages/DocsPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import CreatePluginPage from './pages/CreatePluginPage'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
+import CookiePage from './pages/CookiePage'
 import SplashScreen from './components/common/SplashScreen'
 import LoadingScreen from './components/common/LoadingScreen'
 import './App.css'
@@ -126,6 +129,9 @@ function AppContent() {
       <Route path="/docs" element={session ? <DocsPage /> : <Navigate to="/" />} />
       <Route path="/profile" element={session ? <ProfilePage /> : <Navigate to="/" />} />
       <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/" />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/cookies" element={<CookiePage />} />
     </Routes>
   )
 }

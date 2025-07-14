@@ -1,0 +1,267 @@
+/* Terms of Service Page Styles */
+.terms-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-black);
+  color: var(--color-white);
+}
+
+.terms-content {
+  flex: 1;
+  padding: var(--spacing-xl) 0;
+}
+
+.terms-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+.terms-header {
+  margin-bottom: var(--spacing-xl);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  padding-bottom: var(--spacing-lg);
+}
+
+.terms-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.terms-header p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--color-light-gray);
+  max-width: 800px;
+  margin-bottom: var(--spacing-md);
+}
+
+.terms-meta {
+  display: flex;
+  gap: var(--spacing-lg);
+  font-size: 0.9rem;
+  color: var(--color-light-gray);
+}
+
+.terms-meta span {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: rgba(255, 215, 0, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+/* Layout for main content and sidebar */
+.terms-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--spacing-xl);
+}
+
+.terms-main-content {
+  grid-column: 1;
+}
+
+/* Sticky navigation */
+.terms-nav {
+  grid-column: 2;
+  position: sticky;
+  top: 100px;
+  align-self: start;
+  background-color: var(--color-dark-gray);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.terms-nav-title {
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-primary);
+  font-size: 1.1rem;
+}
+
+.terms-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.terms-nav-link {
+  color: var(--color-light-gray);
+  text-decoration: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.terms-nav-link:hover {
+  background-color: rgba(255, 215, 0, 0.1);
+  color: var(--color-primary);
+}
+
+/* Section styling */
+.terms-section {
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.terms-section:last-child {
+  border-bottom: none;
+}
+
+/* Section header with back to top link */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.section-header h2 {
+  font-size: 1.8rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  margin: 0;
+}
+
+.back-to-top {
+  font-size: 0.9rem;
+  color: var(--color-light-gray);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.back-to-top:hover {
+  color: var(--color-primary);
+}
+
+.back-to-top::before {
+  content: "↑";
+  margin-right: 5px;
+  font-size: 0.8rem;
+}
+
+.terms-section h3 {
+  font-size: 1.4rem;
+  margin: var(--spacing-lg) 0 var(--spacing-md);
+  color: var(--color-white);
+  font-weight: 600;
+}
+
+.terms-section h4 {
+  font-size: 1.2rem;
+  margin: var(--spacing-md) 0;
+  color: var(--color-light-gray);
+  font-weight: 600;
+}
+
+.terms-section p {
+  margin-bottom: var(--spacing-md);
+  line-height: 1.7;
+  color: var(--color-light-gray);
+}
+
+.terms-section ul, .terms-section ol {
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-lg);
+}
+
+.terms-section li {
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+}
+
+.contact-info {
+  background-color: rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+}
+
+.contact-info p {
+  margin-bottom: var(--spacing-xs);
+}
+
+.contact-info p:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .terms-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .terms-main-content {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  
+  .terms-nav {
+    grid-column: 1;
+    grid-row: 1;
+    position: relative;
+    top: 0;
+    margin-bottom: var(--spacing-lg);
+    max-height: none;
+  }
+  
+  .terms-nav-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-xs);
+  }
+}
+
+@media (max-width: 768px) {
+  .terms-header h1 {
+    font-size: 2rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .section-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .terms-section h3 {
+    font-size: 1.2rem;
+  }
+  
+  .terms-section h4 {
+    font-size: 1.1rem;
+  }
+  
+  .back-to-top {
+    font-size: 0.8rem;
+  }
+  
+  .terms-container {
+    padding: 0 var(--spacing-md);
+  }
+  
+  .terms-meta {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .terms-nav-links {
+    grid-template-columns: 1fr;
+  }
+}

@@ -22,11 +22,12 @@ export interface Message {
 export const DEFAULT_AI_MODEL: AIModelConfig = {
   id: 'claude-sonnet-4',
   name: 'Claude Sonnet 4',
-  apiEndpoint: 'http://localhost:3001/api/claude', // Use proxy server
+  apiEndpoint: 'https://api.anthropic.com/v1/messages',
   apiKey: '',
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-3-5-sonnet-20241022',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01'
   },
   systemPrompt: 'You are an expert WordPress plugin developer with 15+ years of experience. Create professional, secure, and standards-compliant WordPress plugins following all WordPress coding standards and best practices.'
 }
@@ -68,7 +69,7 @@ export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise
       ...DEFAULT_AI_MODEL,
       ...config,
       id: DEFAULT_AI_MODEL.id, // Always Claude Sonnet 4
-      apiEndpoint: DEFAULT_AI_MODEL.apiEndpoint, // Fixed proxy endpoint
+      apiEndpoint: DEFAULT_AI_MODEL.apiEndpoint, // Fixed API endpoint
       model: DEFAULT_AI_MODEL.model, // Fixed model
       headers: DEFAULT_AI_MODEL.headers // Fixed headers
     }
@@ -109,9 +110,9 @@ export const getApiKey = async (service: string): Promise<string | null> => {
   }
 }
 
-// Send message to AI model via proxy server
+// Send message to AI model using CORS proxy to reach Claude Sonnet 4 API
 export const sendMessage = async (messages: Message[], context?: string): Promise<string> => {
-  console.log('🚀 Starting sendMessage function via proxy...')
+  console.log('🚀 Starting sendMessage function...')
   
   const config = await getAIModelConfig()
   console.log('📋 AI Config loaded:', { 
@@ -129,9 +130,8 @@ export const sendMessage = async (messages: Message[], context?: string): Promis
   }
 
   try {
-    // Prepare the request for Claude Sonnet 4 via proxy
+    // Prepare the request for Claude Sonnet 4 API
     const requestBody = {
-      apiKey: config.apiKey, // Include API key in request body for proxy
       model: config.model,
       max_tokens: 4000,
       messages: messages.filter(m => m.role !== 'system').map(m => ({
@@ -141,29 +141,37 @@ export const sendMessage = async (messages: Message[], context?: string): Promis
       system: config.systemPrompt + (context ? `\n\nContext: Working on WordPress plugin "${context}"` : '')
     }
 
-    console.log('📤 Request body prepared for proxy:', {
+    console.log('📤 Request body prepared:', {
       model: requestBody.model,
       max_tokens: requestBody.max_tokens,
       messageCount: requestBody.messages.length,
       systemPromptLength: requestBody.system.length,
       context: context || 'none',
-      hasApiKey: !!requestBody.apiKey
+      hasApiKey: !!config.apiKey
     })
 
+    // Use CORS proxy to bypass browser CORS restrictions
+    const corsProxyUrl = 'https://cors-anywhere.herokuapp.com/'
+    const targetUrl = config.apiEndpoint
+    const proxyUrl = corsProxyUrl + targetUrl
+
     const headers = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'x-api-key': config.apiKey,
+      'X-Requested-With': 'XMLHttpRequest'
     }
 
-    console.log('📋 Request headers prepared:', headers)
-    console.log('🌐 Making fetch request to proxy:', config.apiEndpoint)
+    console.log('📋 Request headers prepared:', { ...headers, 'x-api-key': '[REDACTED]' })
+    console.log('🌐 Making fetch request via CORS proxy to:', proxyUrl)
 
-    const response = await fetch(config.apiEndpoint, {
+    const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify(requestBody)
     })
 
-    console.log('📥 Response received from proxy:', {
+    console.log('📥 Response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok,
@@ -174,20 +182,25 @@ export const sendMessage = async (messages: Message[], context?: string): Promis
       let errorData: any = {}
       try {
         errorData = await response.json()
-        console.error('❌ Proxy Error Response:', errorData)
+        console.error('❌ API Error Response:', errorData)
       } catch (parseError) {
-        console.error('❌ Failed to parse proxy error response:', parseError)
+        console.error('❌ Failed to parse error response:', parseError)
         const responseText = await response.text().catch(() => 'Unable to read response')
-        console.error('❌ Raw proxy error response:', responseText)
+        console.error('❌ Raw error response:', responseText)
       }
       
-      const errorMessage = `Proxy request failed: ${response.status} ${response.statusText}. ${errorData.error || errorData.message || 'Unknown error'}`
+      // Handle CORS proxy specific errors
+      if (response.status === 403 && errorData.message?.includes('cors-anywhere')) {
+        throw new Error('CORS proxy access denied. Please visit https://cors-anywhere.herokuapp.com/corsdemo and request temporary access, then try again.')
+      }
+      
+      const errorMessage = `API request failed: ${response.status} ${response.statusText}. ${errorData.error?.message || errorData.message || 'Unknown error'}`
       console.error('❌ Final error message:', errorMessage)
       throw new Error(errorMessage)
     }
 
     const data = await response.json()
-    console.log('✅ Response data received from proxy:', {
+    console.log('✅ Response data received:', {
       hasContent: !!data.content,
       contentLength: data.content?.length || 0,
       firstContentType: data.content?.[0]?.type,
@@ -195,19 +208,21 @@ export const sendMessage = async (messages: Message[], context?: string): Promis
     })
     
     if (data.content && data.content[0] && data.content[0].text) {
-      console.log('✅ Successfully extracted text response from proxy')
+      console.log('✅ Successfully extracted text response')
       return data.content[0].text
     } else {
-      const error = 'Invalid response format from Claude Sonnet 4 via proxy'
+      const error = 'Invalid response format from Claude Sonnet 4 API'
       console.error('❌', error, 'Full response:', data)
       throw new Error(error)
     }
   } catch (error) {
-    console.error('❌ Error in sendMessage via proxy:', error)
+    console.error('❌ Error in sendMessage:', error)
     
     // Provide more specific error messages
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error('Network error: Unable to connect to proxy server. Please ensure the proxy server is running on port 3001.')
+      throw new Error('Network error: Unable to connect to Claude Sonnet 4 API. This might be a CORS issue. Please visit https://cors-anywhere.herokuapp.com/corsdemo to request temporary access.')
+    } else if (error instanceof Error && error.message.includes('cors-anywhere')) {
+      throw new Error(error.message)
     } else if (error instanceof Error && error.message.includes('401')) {
       throw new Error('Authentication failed: Invalid Claude Sonnet 4 API key. Please check your API key in settings.')
     } else if (error instanceof Error && error.message.includes('429')) {
@@ -220,10 +235,10 @@ export const sendMessage = async (messages: Message[], context?: string): Promis
   }
 }
 
-// Test AI model connection via proxy
+// Test AI model connection
 export const testAIConnection = async (): Promise<{ success: boolean; message: string }> => {
   try {
-    console.log('🧪 Testing AI connection via proxy...')
+    console.log('🧪 Testing AI connection...')
     
     const config = await getAIModelConfig()
     
@@ -231,22 +246,6 @@ export const testAIConnection = async (): Promise<{ success: boolean; message: s
       return {
         success: false,
         message: 'Claude Sonnet 4 API key not configured'
-      }
-    }
-
-    // Test proxy server health first
-    try {
-      const healthResponse = await fetch('http://localhost:3001/api/health')
-      if (!healthResponse.ok) {
-        return {
-          success: false,
-          message: 'Proxy server is not running. Please start the development server.'
-        }
-      }
-    } catch (proxyError) {
-      return {
-        success: false,
-        message: 'Cannot connect to proxy server. Please ensure the development server is running.'
       }
     }
 
@@ -263,12 +262,12 @@ export const testAIConnection = async (): Promise<{ success: boolean; message: s
     if (response.toLowerCase().includes('connection successful')) {
       return {
         success: true,
-        message: 'Claude Sonnet 4 connection successful via proxy'
+        message: 'Claude Sonnet 4 connection successful'
       }
     } else {
       return {
         success: true,
-        message: 'Claude Sonnet 4 is responding via proxy (connection working)'
+        message: 'Claude Sonnet 4 is responding (connection working)'
       }
     }
   } catch (error) {

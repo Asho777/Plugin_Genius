@@ -29,7 +29,6 @@ const CreatePluginPage = () => {
   
   const [pluginName, setPluginName] = useState('')
   const [pluginDescription, setPluginDescription] = useState('')
-  const [pluginRequirements, setPluginRequirements] = useState('')
   const [activeTab, setActiveTab] = useState('builder')
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -360,7 +359,6 @@ new ${name.replace(/\s+/g, '')}();
           
 Plugin Name: ${pluginName}
 Description: ${pluginDescription}
-Requirements: ${pluginRequirements}
 
 IMPORTANT: Your response must be a single, valid JSON object with file paths as keys and file contents as values. Include:
 - Main plugin file (${pluginName.toLowerCase().replace(/\s+/g, '-')}.php)
@@ -1213,18 +1211,9 @@ ${allFiles}`;
                         <div className="config-field">
                           <label>Description</label>
                           <textarea
-                            placeholder="Describe what your plugin does..."
+                            placeholder="Describe what your plugin does and its features..."
                             value={pluginDescription}
                             onChange={(e) => setPluginDescription(e.target.value)}
-                            className="config-textarea"
-                          />
-                        </div>
-                        <div className="config-field">
-                          <label>Requirements/Features</label>
-                          <textarea
-                            placeholder="Specific requirements or features you want..."
-                            value={pluginRequirements}
-                            onChange={(e) => setPluginRequirements(e.target.value)}
                             className="config-textarea"
                           />
                         </div>
