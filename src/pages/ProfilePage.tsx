@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { FiEdit, FiUser, FiMail, FiBriefcase, FiCalendar, FiGlobe, FiBell, FiMoon, FiSun, FiUpload, FiCheck, FiAlertCircle } from 'react-icons/fi'
+import { FiEdit, FiUser, FiMail, FiBriefcase, FiCalendar, FiGlobe, FiBell, FiMoon, FiSun, FiUpload, FiCheck, FiAlertCircle, FiShield } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import AvatarImage from '../components/common/AvatarImage'
@@ -16,18 +16,135 @@ import {
   UserNotifications,
   UserPreferences
 } from '../services/settingsService'
+import { supabase } from '../lib/supabase'
 import '../styles/profile.css'
+
+interface UserRole {
+  id: string
+  name: string
+  level: number
+  description: string
+}
 
 const ProfilePage = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [security, setSecurity] = useState<UserSecurity | null>(null)
   const [notifications, setNotifications] = useState<UserNotifications | null>(null)
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const fetchUserRole = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.log('No authenticated user found')
+        return
+      }
+
+      console.log('Fetching role for user:', user.id)
+
+      // Query by user_id, not id
+      const { data: profileCheck, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)  // Changed from 'id' to 'user_id'
+        .maybeSingle()
+
+      console.log('Profile check result:', { profileCheck, profileError })
+
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError)
+        return
+      }
+
+      if (!profileCheck) {
+        console.log('No user profile found, creating one...')
+        // If user profile doesn't exist, let's create one with default role
+        const { data: defaultRole } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('name', 'User')
+          .single()
+
+        if (defaultRole) {
+          console.log('Creating user profile with default role:', defaultRole)
+          const { data: newProfile, error: insertError } = await supabase
+            .from('user_profiles')
+            .insert({
+              user_id: user.id,  // Use user_id, not id
+              email: user.email,
+              role_id: defaultRole.id,
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+          if (insertError) {
+            console.error('Error creating user profile:', insertError)
+            return
+          }
+
+          if (newProfile) {
+            setUserRole(defaultRole)
+            console.log('User profile created with role:', defaultRole)
+          }
+        }
+        return
+      }
+
+      // Now fetch the role information
+      if (profileCheck?.role_id) {
+        console.log('Fetching role for role_id:', profileCheck.role_id)
+        
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('id', profileCheck.role_id)
+          .single()
+
+        console.log('Role fetch result:', { roleData, roleError })
+
+        if (roleError) {
+          console.error('Error fetching role:', roleError)
+          return
+        }
+
+        if (roleData) {
+          console.log('Setting user role:', roleData)
+          setUserRole(roleData as UserRole)
+        }
+      } else {
+        console.log('No role_id found in profile, assigning default role')
+        // Assign default role if none exists
+        const { data: defaultRole } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('name', 'User')
+          .single()
+
+        if (defaultRole) {
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({ role_id: defaultRole.id })
+            .eq('user_id', user.id)  // Changed from 'id' to 'user_id'
+
+          if (!updateError) {
+            setUserRole(defaultRole)
+            console.log('Default role assigned:', defaultRole)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in fetchUserRole:', error)
+    }
+  }
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -45,6 +162,9 @@ const ProfilePage = () => {
         setSecurity(securityData)
         setNotifications(notificationsData)
         setPreferences(preferencesData)
+        
+        // Fetch user role
+        await fetchUserRole()
       } catch (error) {
         console.error('Error fetching user data:', error)
       } finally {
@@ -236,6 +356,17 @@ const ProfilePage = () => {
                   <h2>{profile?.full_name || 'User'}</h2>
                   <p>{profile?.email}</p>
                   {profile?.company && <p className="company">{profile.company}</p>}
+                  
+                  {userRole && (
+                    <div className="user-role-info">
+                      <div className="role-level">
+                        <FiShield />
+                        <span className="role-name">{userRole.name}</span>
+                        <span className="role-level-number">Level {userRole.level}</span>
+                      </div>
+                      <p className="role-message">This is Your Current Access Level</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

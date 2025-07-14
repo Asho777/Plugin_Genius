@@ -67,7 +67,7 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Error fetching user profile:', error)
@@ -81,7 +81,7 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
   }
 }
 
-// Get user security settings
+// Get user security settings - create if doesn't exist
 export const getUserSecurity = async (): Promise<UserSecurity | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -90,15 +90,39 @@ export const getUserSecurity = async (): Promise<UserSecurity | null> => {
       throw new Error('No authenticated user')
     }
 
+    // Try to get existing record
     const { data, error } = await supabase
       .from('user_security')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Error fetching user security:', error)
       return null
+    }
+
+    // If no record exists, create one with defaults
+    if (!data) {
+      console.log('No security record found, creating default...')
+      const defaultSecurity = {
+        user_id: user.id,
+        two_factor_enabled: false,
+        password_last_changed: new Date().toISOString()
+      }
+
+      const { data: newData, error: insertError } = await supabase
+        .from('user_security')
+        .insert(defaultSecurity)
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Error creating default security record:', insertError)
+        return null
+      }
+
+      return newData
     }
 
     return data
@@ -108,7 +132,7 @@ export const getUserSecurity = async (): Promise<UserSecurity | null> => {
   }
 }
 
-// Get user notification settings
+// Get user notification settings - create if doesn't exist
 export const getUserNotifications = async (): Promise<UserNotifications | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -117,15 +141,40 @@ export const getUserNotifications = async (): Promise<UserNotifications | null> 
       throw new Error('No authenticated user')
     }
 
+    // Try to get existing record
     const { data, error } = await supabase
       .from('user_notifications')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Error fetching user notifications:', error)
       return null
+    }
+
+    // If no record exists, create one with defaults
+    if (!data) {
+      console.log('No notifications record found, creating default...')
+      const defaultNotifications = {
+        user_id: user.id,
+        email_notifications: true,
+        update_notifications: true,
+        marketing_notifications: false
+      }
+
+      const { data: newData, error: insertError } = await supabase
+        .from('user_notifications')
+        .insert(defaultNotifications)
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Error creating default notifications record:', insertError)
+        return null
+      }
+
+      return newData
     }
 
     return data
@@ -135,7 +184,7 @@ export const getUserNotifications = async (): Promise<UserNotifications | null> 
   }
 }
 
-// Get user preferences
+// Get user preferences - create if doesn't exist
 export const getUserPreferences = async (): Promise<UserPreferences | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -144,15 +193,40 @@ export const getUserPreferences = async (): Promise<UserPreferences | null> => {
       throw new Error('No authenticated user')
     }
 
+    // Try to get existing record
     const { data, error } = await supabase
       .from('user_preferences')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Error fetching user preferences:', error)
       return null
+    }
+
+    // If no record exists, create one with defaults
+    if (!data) {
+      console.log('No preferences record found, creating default...')
+      const defaultPreferences = {
+        user_id: user.id,
+        language: 'en',
+        timezone: 'utc',
+        dark_mode: false
+      }
+
+      const { data: newData, error: insertError } = await supabase
+        .from('user_preferences')
+        .insert(defaultPreferences)
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Error creating default preferences record:', insertError)
+        return null
+      }
+
+      return newData
     }
 
     return data
