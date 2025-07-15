@@ -3,8 +3,10 @@ import { motion } from 'framer-motion'
 import { FiSave, FiKey, FiShield, FiUser, FiMail, FiGlobe, FiSettings } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
+import AIModelSelector from '../components/AIModelSelector'
+import type { AIConfiguration } from '../components/AIModelSelector'
 import { 
-  getAIModelConfig, saveAIModelConfig, DEFAULT_AI_MODEL, AIModelConfig
+  getAIModelConfig, saveAIModelConfig, saveMultiProviderConfig, testAIConnection, DEFAULT_AI_MODEL, AIModelConfig
 } from '../services/aiService'
 import { 
   getUserProfile, updateUserProfile, 
@@ -15,6 +17,7 @@ import {
 } from '../services/settingsService'
 import { timezones, getUserTimezone } from '../utils/timezones'
 import '../styles/settings.css'
+import '../styles/ai-model-selector.css'
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('ai-config')
@@ -22,16 +25,8 @@ const SettingsPage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   
-  // AI Configuration state - simplified for Claude Sonnet 4 only
-  const [aiConfig, setAiConfig] = useState<AIModelConfig>({
-    id: DEFAULT_AI_MODEL.id,
-    name: DEFAULT_AI_MODEL.name,
-    apiEndpoint: DEFAULT_AI_MODEL.apiEndpoint,
-    apiKey: '',
-    model: DEFAULT_AI_MODEL.model,
-    headers: DEFAULT_AI_MODEL.headers,
-    systemPrompt: DEFAULT_AI_MODEL.systemPrompt
-  })
+  // AI Configuration state
+  const [currentAIConfig, setCurrentAIConfig] = useState<AIConfiguration | undefined>()
   
   // User settings state
   const [profile, setProfile] = useState<UserProfile>({
@@ -69,225 +64,248 @@ const SettingsPage = () => {
   // Load AI configuration
   useEffect(() => {
     const loadAIConfig = async () => {
-      console.log('Loading AI configuration...');
-      const config = await getAIModelConfig();
+      console.log('Loading AI configuration...')
+      const config = await getAIModelConfig()
       if (config) {
-        console.log('AI configuration loaded:', config);
-        setAiConfig(config);
+        console.log('AI configuration loaded:', config)
+        // Convert AIModelConfig to AIConfiguration format
+        setCurrentAIConfig({
+          provider: config.provider || 'anthropic',
+          model: config.model,
+          apiKey: config.apiKey,
+          endpoint: config.apiEndpoint,
+          providerName: config.name,
+          headers: config.headers
+        })
       } else {
-        console.log('No AI configuration found, using defaults');
+        console.log('No AI configuration found, using defaults')
       }
-    };
+    }
     
-    loadAIConfig();
-  }, []);
+    loadAIConfig()
+  }, [])
   
   // Load user settings
   useEffect(() => {
     const loadUserSettings = async () => {
       try {
-        setLoading(true);
+        setLoading(true)
         
         // Load profile
-        const userProfile = await getUserProfile();
+        const userProfile = await getUserProfile()
         if (userProfile) {
-          setProfile(userProfile);
+          setProfile(userProfile)
         }
         
         // Load security settings
-        const userSecurity = await getUserSecurity();
+        const userSecurity = await getUserSecurity()
         if (userSecurity) {
-          setSecurity(userSecurity);
+          setSecurity(userSecurity)
         }
         
         // Load notifications
-        const userNotifications = await getUserNotifications();
+        const userNotifications = await getUserNotifications()
         if (userNotifications) {
-          setNotifications(userNotifications);
+          setNotifications(userNotifications)
         }
         
         // Load preferences
-        const userPreferences = await getUserPreferences();
+        const userPreferences = await getUserPreferences()
         if (userPreferences) {
-          setPreferences(userPreferences);
+          setPreferences(userPreferences)
         }
       } catch (error) {
-        console.error('Error loading user settings:', error);
+        console.error('Error loading user settings:', error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
     
-    loadUserSettings();
-  }, []);
+    loadUserSettings()
+  }, [])
   
-  // Handle save AI configuration
-  const handleSaveAIConfig = async () => {
-    console.log('Save AI config button clicked');
-    setLoading(true);
-    setSaveError(null);
-    setSaveSuccess(false);
+  // Handle AI configuration change
+  const handleAIConfigurationChange = async (config: AIConfiguration) => {
+    console.log('AI configuration changed:', config)
+    setLoading(true)
+    setSaveError(null)
+    setSaveSuccess(false)
     
     try {
-      // Validate required fields - only API key is required now
-      if (!aiConfig.apiKey.trim()) {
-        setSaveError('API key is required');
-        setLoading(false);
-        return;
-      }
-      
-      // Basic validation for Claude API key format
-      if (!aiConfig.apiKey.startsWith('sk-ant-')) {
-        setSaveError('Invalid Claude Sonnet 4 API key format. API key should start with "sk-ant-"');
-        setLoading(false);
-        return;
-      }
-      
-      console.log('Attempting to save AI configuration to Supabase...');
-      const success = await saveAIModelConfig(aiConfig);
+      // Save multi-provider configuration
+      const success = await saveMultiProviderConfig({
+        provider: config.provider,
+        model: config.model,
+        apiKey: config.apiKey,
+        endpoint: config.endpoint,
+        providerName: config.providerName,
+        headers: config.headers,
+        systemPrompt: DEFAULT_AI_MODEL.systemPrompt
+      })
       
       if (success) {
-        console.log('AI configuration saved successfully to Supabase');
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setCurrentAIConfig(config)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
+        console.log('AI configuration saved successfully')
       } else {
-        console.error('Failed to save AI configuration to Supabase');
-        setSaveError('Failed to save AI configuration. Please check the console for details.');
+        setSaveError('Failed to save AI configuration. Please try again.')
       }
     } catch (error) {
-      console.error('Error saving AI configuration:', error);
-      setSaveError(`Error saving AI configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error saving AI configuration:', error)
+      setSaveError(`Error saving AI configuration: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+  
+  // Handle AI connection test
+  const handleTestAIConnection = async (config: AIConfiguration): Promise<{ success: boolean; message: string }> => {
+    try {
+      const result = await testAIConnection({
+        provider: config.provider,
+        model: config.model,
+        apiKey: config.apiKey,
+        endpoint: config.endpoint,
+        providerName: config.providerName,
+        headers: config.headers
+      })
+      
+      return result
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Test failed'
+      }
+    }
+  }
   
   // Handle save profile
   const handleSaveProfile = async () => {
-    setLoading(true);
-    setSaveError(null);
+    setLoading(true)
+    setSaveError(null)
     
     try {
-      const updatedProfile = await updateUserProfile(profile);
+      const updatedProfile = await updateUserProfile(profile)
       if (updatedProfile) {
-        setProfile(updatedProfile);
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setProfile(updatedProfile)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
       } else {
-        setSaveError('Error saving profile. Please try again.');
+        setSaveError('Error saving profile. Please try again.')
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      setSaveError('Error saving profile. Please try again.');
+      console.error('Error saving profile:', error)
+      setSaveError('Error saving profile. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
   
   // Handle save security settings
   const handleSaveSecurity = async () => {
-    setLoading(true);
-    setSaveError(null);
+    setLoading(true)
+    setSaveError(null)
     
     try {
-      const updatedSecurity = await updateUserSecurity(security);
+      const updatedSecurity = await updateUserSecurity(security)
       if (updatedSecurity) {
-        setSecurity(updatedSecurity);
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setSecurity(updatedSecurity)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
       } else {
-        setSaveError('Error saving security settings. Please try again.');
+        setSaveError('Error saving security settings. Please try again.')
       }
     } catch (error) {
-      console.error('Error saving security settings:', error);
-      setSaveError('Error saving security settings. Please try again.');
+      console.error('Error saving security settings:', error)
+      setSaveError('Error saving security settings. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
   
   // Handle save password
   const handleSavePassword = async () => {
-    setLoading(true);
-    setSaveError(null);
+    setLoading(true)
+    setSaveError(null)
     
     try {
       if (passwords.new !== passwords.confirm) {
-        setSaveError('New passwords do not match.');
-        setLoading(false);
-        return;
+        setSaveError('New passwords do not match.')
+        setLoading(false)
+        return
       }
       
-      const success = await updateUserPassword(passwords.current, passwords.new);
+      const success = await updateUserPassword(passwords.current, passwords.new)
       
       if (success) {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
-        setPasswords({ current: '', new: '', confirm: '' });
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
+        setPasswords({ current: '', new: '', confirm: '' })
       } else {
-        setSaveError('Failed to update password. Please check your current password and try again.');
+        setSaveError('Failed to update password. Please check your current password and try again.')
       }
     } catch (error) {
-      console.error('Error updating password:', error);
-      setSaveError('Error updating password. Please try again.');
+      console.error('Error updating password:', error)
+      setSaveError('Error updating password. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
   
   // Handle save notifications
   const handleSaveNotifications = async () => {
-    setLoading(true);
-    setSaveError(null);
+    setLoading(true)
+    setSaveError(null)
     
     try {
-      const updatedNotifications = await updateUserNotifications(notifications);
+      const updatedNotifications = await updateUserNotifications(notifications)
       if (updatedNotifications) {
-        setNotifications(updatedNotifications);
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setNotifications(updatedNotifications)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
       } else {
-        setSaveError('Error saving notification preferences. Please try again.');
+        setSaveError('Error saving notification preferences. Please try again.')
       }
     } catch (error) {
-      console.error('Error saving notifications:', error);
-      setSaveError('Error saving notification preferences. Please try again.');
+      console.error('Error saving notifications:', error)
+      setSaveError('Error saving notification preferences. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
   
   // Handle save preferences
   const handleSavePreferences = async () => {
-    setLoading(true);
-    setSaveError(null);
+    setLoading(true)
+    setSaveError(null)
     
     try {
-      const updatedPreferences = await updateUserPreferences(preferences);
+      const updatedPreferences = await updateUserPreferences(preferences)
       if (updatedPreferences) {
-        setPreferences(updatedPreferences);
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setPreferences(updatedPreferences)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
       } else {
-        setSaveError('Error saving preferences. Please try again.');
+        setSaveError('Error saving preferences. Please try again.')
       }
     } catch (error) {
-      console.error('Error saving preferences:', error);
-      setSaveError('Error saving preferences. Please try again.');
+      console.error('Error saving preferences:', error)
+      setSaveError('Error saving preferences. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
   
   // Apply dark background to select dropdowns
   useEffect(() => {
     // Add a class to the document to help with styling select dropdowns
-    document.documentElement.classList.add('dark-dropdowns');
+    document.documentElement.classList.add('dark-dropdowns')
     
     return () => {
-      document.documentElement.classList.remove('dark-dropdowns');
-    };
-  }, []);
+      document.documentElement.classList.remove('dark-dropdowns')
+    }
+  }, [])
   
   return (
     <div className="settings-page">
@@ -355,84 +373,26 @@ const SettingsPage = () => {
                 </div>
               )}
               
+              {/* Success Message Display */}
+              {saveSuccess && (
+                <div className="success-message">
+                  <p>Settings saved successfully!</p>
+                </div>
+              )}
+              
               {activeTab === 'ai-config' && (
                 <div className="ai-config-panel">
-                  <h2 className="panel-title">Claude Sonnet 4 Configuration</h2>
+                  <h2 className="panel-title">AI Model Configuration</h2>
                   <p className="panel-description">
-                    Configure your Claude Sonnet 4 API connection. Plugin Genius uses Claude Sonnet 4 
-                    to generate professional WordPress plugins. Your API key is securely stored in your profile and never shared.
+                    Configure your AI provider for WordPress plugin generation. Plugin Genius supports multiple AI providers 
+                    including Anthropic Claude, OpenAI GPT, Google Gemini, and custom providers.
                   </p>
                   
-                  <div className="ai-config-form">
-                    <div className="form-group">
-                      <label htmlFor="ai-name">AI Model</label>
-                      <input
-                        id="ai-name"
-                        type="text"
-                        value={aiConfig.name}
-                        disabled
-                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
-                      />
-                      <div className="help-text">
-                        <p>Plugin Genius is optimized for Claude Sonnet 4 - the most advanced AI model for WordPress development.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="api-key">Claude Sonnet 4 API Key *</label>
-                      <input
-                        id="api-key"
-                        type="password"
-                        placeholder="sk-ant-..."
-                        value={aiConfig.apiKey}
-                        onChange={(e) => setAiConfig({...aiConfig, apiKey: e.target.value})}
-                        required
-                      />
-                      <div className="help-text">
-                        <p>Your Claude Sonnet 4 API key from Anthropic. Get yours at <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" style={{color: 'var(--color-primary)'}}>console.anthropic.com</a></p>
-                        <p><strong>Secure Storage:</strong> Your API key is saved to your Supabase profile and encrypted.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="model">Model Version</label>
-                      <input
-                        id="model"
-                        type="text"
-                        value={aiConfig.model}
-                        disabled
-                        style={{ opacity: 0.7, cursor: 'not-allowed' }}
-                      />
-                      <div className="help-text">
-                        <p>Using the latest Claude 3.5 Sonnet model optimized for professional WordPress development.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="system-prompt">System Prompt</label>
-                      <textarea
-                        id="system-prompt"
-                        rows={4}
-                        placeholder="Enter the system prompt for Claude Sonnet 4"
-                        value={aiConfig.systemPrompt}
-                        onChange={(e) => setAiConfig({...aiConfig, systemPrompt: e.target.value})}
-                      />
-                      <div className="help-text">
-                        <p>Instructions that define how Claude Sonnet 4 should behave when generating WordPress plugins.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="ai-config-actions">
-                      <button 
-                        className={`save-button ${saveSuccess ? 'success' : ''}`}
-                        onClick={handleSaveAIConfig}
-                        disabled={loading}
-                      >
-                        <FiSave />
-                        <span>{loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Configuration'}</span>
-                      </button>
-                    </div>
-                  </div>
+                  <AIModelSelector
+                    currentConfig={currentAIConfig}
+                    onConfigurationChange={handleAIConfigurationChange}
+                    onTest={handleTestAIConnection}
+                  />
                 </div>
               )}
               

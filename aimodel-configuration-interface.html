@@ -1,0 +1,245 @@
+import React, { useState } from 'react';
+import { ChevronDown, Settings, Key, Globe } from 'lucide-react';
+
+const AIModelSelector = () => {
+  const [selectedProvider, setSelectedProvider] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [customEndpoint, setCustomEndpoint] = useState('');
+  const [isCustomProvider, setIsCustomProvider] = useState(false);
+
+  const providers = {
+    anthropic: {
+      name: 'Anthropic (Claude)',
+      endpoint: 'https://api.anthropic.com',
+      models: [
+        { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: 'Smart, efficient model for everyday use' },
+        { id: 'claude-opus-4', name: 'Claude Opus 4', description: 'Most capable model for complex tasks' },
+        { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', description: 'Previous generation model' }
+      ]
+    },
+    openai: {
+      name: 'OpenAI',
+      endpoint: 'https://api.openai.com',
+      models: [
+        { id: 'gpt-4', name: 'GPT-4', description: 'Most capable GPT model' },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Faster GPT-4 with larger context' },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and cost-effective' }
+      ]
+    },
+    google: {
+      name: 'Google AI',
+      endpoint: 'https://generativelanguage.googleapis.com',
+      models: [
+        { id: 'gemini-pro', name: 'Gemini Pro', description: 'Advanced reasoning and code generation' },
+        { id: 'gemini-pro-vision', name: 'Gemini Pro Vision', description: 'Multimodal capabilities' }
+      ]
+    },
+    cohere: {
+      name: 'Cohere',
+      endpoint: 'https://api.cohere.ai',
+      models: [
+        { id: 'command-r-plus', name: 'Command R+', description: 'Advanced reasoning model' },
+        { id: 'command-r', name: 'Command R', description: 'Balanced performance model' }
+      ]
+    },
+    mistral: {
+      name: 'Mistral AI',
+      endpoint: 'https://api.mistral.ai',
+      models: [
+        { id: 'mistral-large-latest', name: 'Mistral Large', description: 'Most capable Mistral model' },
+        { id: 'mistral-medium-latest', name: 'Mistral Medium', description: 'Balanced performance' }
+      ]
+    }
+  };
+
+  const handleProviderChange = (provider) => {
+    if (provider === 'custom') {
+      setIsCustomProvider(true);
+      setSelectedProvider('');
+      setSelectedModel('');
+      setCustomEndpoint('');
+    } else {
+      setIsCustomProvider(false);
+      setSelectedProvider(provider);
+      setSelectedModel('');
+      setCustomEndpoint(providers[provider]?.endpoint || '');
+    }
+  };
+
+  const handleConnect = () => {
+    const config = {
+      provider: isCustomProvider ? 'custom' : selectedProvider,
+      model: selectedModel,
+      apiKey: apiKey,
+      endpoint: customEndpoint,
+      providerName: isCustomProvider ? 'Custom Provider' : providers[selectedProvider]?.name
+    };
+    
+    console.log('Connection Config:', config);
+    alert('Configuration saved! Check console for details.');
+  };
+
+  const isConfigComplete = () => {
+    if (isCustomProvider) {
+      return apiKey && selectedModel && customEndpoint;
+    }
+    return selectedProvider && selectedModel && apiKey;
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+      <div className="flex items-center gap-2 mb-6">
+        <Settings className="text-blue-600" size={24} />
+        <h2 className="text-2xl font-bold text-gray-800">AI Model Configuration</h2>
+      </div>
+
+      {/* Provider Selection */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select AI Provider
+        </label>
+        <div className="relative">
+          <select
+            value={isCustomProvider ? 'custom' : selectedProvider}
+            onChange={(e) => handleProviderChange(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+          >
+            <option value="">Choose a provider...</option>
+            {Object.entries(providers).map(([key, provider]) => (
+              <option key={key} value={key}>{provider.name}</option>
+            ))}
+            <option value="custom">🔧 Custom Provider</option>
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        </div>
+      </div>
+
+      {/* Custom Provider Fields */}
+      {isCustomProvider && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <h3 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <Globe size={18} />
+            Custom Provider Configuration
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                API Endpoint URL
+              </label>
+              <input
+                type="url"
+                value={customEndpoint}
+                onChange={(e) => setCustomEndpoint(e.target.value)}
+                placeholder="https://api.example.com"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Model Name/ID
+              </label>
+              <input
+                type="text"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                placeholder="model-name-v1"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Model Selection - Only show for predefined providers */}
+      {selectedProvider && !isCustomProvider && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Model
+          </label>
+          <div className="space-y-2">
+            {providers[selectedProvider].models.map((model) => (
+              <div key={model.id} className="flex items-center">
+                <input
+                  type="radio"
+                  id={model.id}
+                  name="model"
+                  value={model.id}
+                  checked={selectedModel === model.id}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="mr-3 text-blue-600"
+                />
+                <label htmlFor={model.id} className="flex-1 cursor-pointer">
+                  <div className="font-medium text-gray-800">{model.name}</div>
+                  <div className="text-sm text-gray-600">{model.description}</div>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* API Key */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+          <Key size={16} />
+          API Key
+        </label>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="Enter your API key..."
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Your API key is stored locally and never shared
+        </p>
+      </div>
+
+      {/* Endpoint Display */}
+      {(selectedProvider || isCustomProvider) && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            API Endpoint
+          </label>
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <code className="text-sm text-gray-800">
+              {customEndpoint || (selectedProvider ? providers[selectedProvider].endpoint : 'Select a provider')}
+            </code>
+          </div>
+        </div>
+      )}
+
+      {/* Connect Button */}
+      <button
+        onClick={handleConnect}
+        disabled={!isConfigComplete()}
+        className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+          isConfigComplete()
+            ? 'bg-blue-600 text-white hover:bg-blue-700'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+        }`}
+      >
+        {isConfigComplete() ? 'Connect to AI Model' : 'Complete Configuration'}
+      </button>
+
+      {/* Configuration Summary */}
+      {isConfigComplete() && (
+        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h3 className="text-sm font-medium text-green-800 mb-2">Configuration Summary</h3>
+          <div className="text-sm text-green-700 space-y-1">
+            <div><strong>Provider:</strong> {isCustomProvider ? 'Custom Provider' : providers[selectedProvider]?.name}</div>
+            <div><strong>Model:</strong> {selectedModel}</div>
+            <div><strong>Endpoint:</strong> {customEndpoint}</div>
+            <div><strong>API Key:</strong> {'*'.repeat(Math.min(apiKey.length, 20))}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AIModelSelector;

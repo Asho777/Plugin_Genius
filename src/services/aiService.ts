@@ -11,6 +11,7 @@ export interface AIModelConfig {
   model: string
   headers: Record<string, string>
   systemPrompt: string
+  provider?: string
 }
 
 export interface Message {
@@ -21,15 +22,28 @@ export interface Message {
 // Default AI Model Configuration for Claude Sonnet 4
 export const DEFAULT_AI_MODEL: AIModelConfig = {
   id: 'claude-sonnet-4',
-  name: 'Claude Sonnet 4',
+  name: 'Claude 3.5 Sonnet',
   apiEndpoint: 'https://api.anthropic.com/v1/messages',
   apiKey: '',
   model: 'claude-3-5-sonnet-20241022',
+  provider: 'anthropic',
   headers: {
     'Content-Type': 'application/json',
-    'anthropic-version': '2023-06-01'
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true'
   },
   systemPrompt: 'You are an expert WordPress plugin developer with 15+ years of experience. Create professional, secure, and standards-compliant WordPress plugins following all WordPress coding standards and best practices.'
+}
+
+// Multi-provider AI configuration
+export interface MultiProviderConfig {
+  provider: string
+  model: string
+  apiKey: string
+  endpoint: string
+  providerName: string
+  headers?: Record<string, string>
+  systemPrompt?: string
 }
 
 // Get AI model configuration from Supabase and localStorage
@@ -44,6 +58,24 @@ export const getAIModelConfig = async (): Promise<AIModelConfig | null> => {
       if (stored) {
         const config = JSON.parse(stored)
         apiKey = config.apiKey
+      }
+    }
+    
+    // Check for multi-provider configuration
+    const multiProviderConfig = localStorage.getItem('multi-provider-ai-config')
+    if (multiProviderConfig) {
+      const config: MultiProviderConfig = JSON.parse(multiProviderConfig)
+      
+      // Convert multi-provider config to AIModelConfig format
+      return {
+        id: `${config.provider}-${config.model}`,
+        name: config.providerName,
+        apiEndpoint: config.endpoint,
+        apiKey: config.apiKey,
+        model: config.model,
+        provider: config.provider,
+        headers: config.headers || DEFAULT_AI_MODEL.headers,
+        systemPrompt: config.systemPrompt || DEFAULT_AI_MODEL.systemPrompt
       }
     }
     
@@ -68,10 +100,10 @@ export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise
     const finalConfig: AIModelConfig = {
       ...DEFAULT_AI_MODEL,
       ...config,
-      id: DEFAULT_AI_MODEL.id, // Always Claude Sonnet 4
-      apiEndpoint: DEFAULT_AI_MODEL.apiEndpoint, // Fixed API endpoint
-      model: DEFAULT_AI_MODEL.model, // Fixed model
-      headers: DEFAULT_AI_MODEL.headers // Fixed headers
+      id: config.id || DEFAULT_AI_MODEL.id,
+      apiEndpoint: config.apiEndpoint || DEFAULT_AI_MODEL.apiEndpoint,
+      model: config.model || DEFAULT_AI_MODEL.model,
+      headers: config.headers || DEFAULT_AI_MODEL.headers
     }
     
     // Save API key to Supabase user profile
@@ -88,6 +120,28 @@ export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise
     return true
   } catch (error) {
     console.error('Error saving AI model configuration:', error)
+    return false
+  }
+}
+
+// Save multi-provider AI configuration
+export const saveMultiProviderConfig = async (config: MultiProviderConfig): Promise<boolean> => {
+  try {
+    // Save to localStorage
+    localStorage.setItem('multi-provider-ai-config', JSON.stringify(config))
+    
+    // Also save API key to Supabase if it's the primary configuration
+    if (config.apiKey) {
+      const supabaseSuccess = await saveUserApiKey(config.apiKey)
+      if (!supabaseSuccess) {
+        console.warn('Failed to save API key to Supabase, falling back to localStorage only')
+      }
+    }
+    
+    console.log('Multi-provider AI configuration saved successfully')
+    return true
+  } catch (error) {
+    console.error('Error saving multi-provider AI configuration:', error)
     return false
   }
 }
@@ -110,142 +164,192 @@ export const getApiKey = async (service: string): Promise<string | null> => {
   }
 }
 
-// Send message to AI model using CORS proxy to reach Claude Sonnet 4 API
+// Send message to AI model with multi-provider support
 export const sendMessage = async (messages: Message[], context?: string): Promise<string> => {
-  console.log('🚀 Starting sendMessage function...')
+  console.log('🚀 Starting sendMessage function with multi-provider support...')
   
   const config = await getAIModelConfig()
   console.log('📋 AI Config loaded:', { 
     hasConfig: !!config, 
     hasApiKey: !!config?.apiKey,
-    apiKeyPrefix: config?.apiKey?.substring(0, 10) + '...',
-    endpoint: config?.apiEndpoint,
-    model: config?.model
+    provider: config?.provider,
+    model: config?.model,
+    endpoint: config?.apiEndpoint
   })
   
   if (!config || !config.apiKey) {
-    const error = 'AI model not configured. Please configure Claude Sonnet 4 in settings.'
+    const error = 'AI model not configured. Please configure your AI provider in settings.'
     console.error('❌', error)
     throw new Error(error)
   }
 
   try {
-    // Prepare the request for Claude Sonnet 4 API
-    const requestBody = {
-      model: config.model,
-      max_tokens: 4000,
-      messages: messages.filter(m => m.role !== 'system').map(m => ({
-        role: m.role,
-        content: m.content
-      })),
-      system: config.systemPrompt + (context ? `\n\nContext: Working on WordPress plugin "${context}"` : '')
-    }
-
-    console.log('📤 Request body prepared:', {
-      model: requestBody.model,
-      max_tokens: requestBody.max_tokens,
-      messageCount: requestBody.messages.length,
-      systemPromptLength: requestBody.system.length,
-      context: context || 'none',
-      hasApiKey: !!config.apiKey
-    })
-
-    // Use CORS proxy to bypass browser CORS restrictions
-    const corsProxyUrl = 'https://cors-anywhere.herokuapp.com/'
-    const targetUrl = config.apiEndpoint
-    const proxyUrl = corsProxyUrl + targetUrl
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-      'x-api-key': config.apiKey,
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-
-    console.log('📋 Request headers prepared:', { ...headers, 'x-api-key': '[REDACTED]' })
-    console.log('🌐 Making fetch request via CORS proxy to:', proxyUrl)
-
-    const response = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    })
-
-    console.log('📥 Response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
-    })
-
-    if (!response.ok) {
-      let errorData: any = {}
-      try {
-        errorData = await response.json()
-        console.error('❌ API Error Response:', errorData)
-      } catch (parseError) {
-        console.error('❌ Failed to parse error response:', parseError)
-        const responseText = await response.text().catch(() => 'Unable to read response')
-        console.error('❌ Raw error response:', responseText)
-      }
-      
-      // Handle CORS proxy specific errors
-      if (response.status === 403 && errorData.message?.includes('cors-anywhere')) {
-        throw new Error('CORS proxy access denied. Please visit https://cors-anywhere.herokuapp.com/corsdemo and request temporary access, then try again.')
-      }
-      
-      const errorMessage = `API request failed: ${response.status} ${response.statusText}. ${errorData.error?.message || errorData.message || 'Unknown error'}`
-      console.error('❌ Final error message:', errorMessage)
-      throw new Error(errorMessage)
-    }
-
-    const data = await response.json()
-    console.log('✅ Response data received:', {
-      hasContent: !!data.content,
-      contentLength: data.content?.length || 0,
-      firstContentType: data.content?.[0]?.type,
-      hasText: !!data.content?.[0]?.text
-    })
-    
-    if (data.content && data.content[0] && data.content[0].text) {
-      console.log('✅ Successfully extracted text response')
-      return data.content[0].text
+    // Handle different providers
+    if (config.provider === 'anthropic' || !config.provider) {
+      return await sendAnthropicMessage(config, messages, context)
+    } else if (config.provider === 'openai') {
+      return await sendOpenAIMessage(config, messages, context)
     } else {
-      const error = 'Invalid response format from Claude Sonnet 4 API'
-      console.error('❌', error, 'Full response:', data)
-      throw new Error(error)
+      // Generic provider handling
+      return await sendGenericMessage(config, messages, context)
     }
   } catch (error) {
     console.error('❌ Error in sendMessage:', error)
-    
-    // Provide more specific error messages
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error('Network error: Unable to connect to Claude Sonnet 4 API. This might be a CORS issue. Please visit https://cors-anywhere.herokuapp.com/corsdemo to request temporary access.')
-    } else if (error instanceof Error && error.message.includes('cors-anywhere')) {
-      throw new Error(error.message)
-    } else if (error instanceof Error && error.message.includes('401')) {
-      throw new Error('Authentication failed: Invalid Claude Sonnet 4 API key. Please check your API key in settings.')
-    } else if (error instanceof Error && error.message.includes('429')) {
-      throw new Error('Rate limit exceeded: Too many requests to Claude Sonnet 4 API. Please wait a moment and try again.')
-    } else if (error instanceof Error && error.message.includes('403')) {
-      throw new Error('Access forbidden: Your Claude Sonnet 4 API key may not have the required permissions.')
-    }
-    
     throw error
   }
 }
 
-// Test AI model connection
-export const testAIConnection = async (): Promise<{ success: boolean; message: string }> => {
+// Anthropic-specific message sending
+const sendAnthropicMessage = async (config: AIModelConfig, messages: Message[], context?: string): Promise<string> => {
+  const requestBody = {
+    model: config.model,
+    max_tokens: 4000,
+    messages: messages.filter(m => m.role !== 'system').map(m => ({
+      role: m.role,
+      content: m.content
+    })),
+    system: config.systemPrompt + (context ? `\n\nContext: Working on WordPress plugin "${context}"` : '')
+  }
+
+  const headers = {
+    ...config.headers,
+    'x-api-key': config.apiKey
+  }
+
+  console.log('🌐 Making request to Anthropic API:', config.apiEndpoint)
+
+  const response = await fetch(config.apiEndpoint, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(`Anthropic API error: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`)
+  }
+
+  const data = await response.json()
+  
+  if (data.content && data.content[0] && data.content[0].text) {
+    return data.content[0].text
+  } else {
+    throw new Error('Invalid response format from Anthropic API')
+  }
+}
+
+// OpenAI-specific message sending
+const sendOpenAIMessage = async (config: AIModelConfig, messages: Message[], context?: string): Promise<string> => {
+  const requestBody = {
+    model: config.model,
+    messages: [
+      {
+        role: 'system',
+        content: config.systemPrompt + (context ? `\n\nContext: Working on WordPress plugin "${context}"` : '')
+      },
+      ...messages.filter(m => m.role !== 'system')
+    ],
+    max_tokens: 4000
+  }
+
+  const headers = {
+    ...config.headers,
+    'Authorization': `Bearer ${config.apiKey}`
+  }
+
+  console.log('🌐 Making request to OpenAI API:', config.apiEndpoint)
+
+  const response = await fetch(config.apiEndpoint, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(`OpenAI API error: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`)
+  }
+
+  const data = await response.json()
+  
+  if (data.choices && data.choices[0] && data.choices[0].message) {
+    return data.choices[0].message.content
+  } else {
+    throw new Error('Invalid response format from OpenAI API')
+  }
+}
+
+// Generic message sending for custom providers
+const sendGenericMessage = async (config: AIModelConfig, messages: Message[], context?: string): Promise<string> => {
+  // This is a basic implementation - may need customization based on provider
+  const requestBody = {
+    model: config.model,
+    messages: messages,
+    max_tokens: 4000,
+    system: config.systemPrompt + (context ? `\n\nContext: Working on WordPress plugin "${context}"` : '')
+  }
+
+  const headers = {
+    ...config.headers,
+    'Authorization': `Bearer ${config.apiKey}`
+  }
+
+  console.log('🌐 Making request to custom provider:', config.apiEndpoint)
+
+  const response = await fetch(config.apiEndpoint, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(`API error: ${response.status} ${response.statusText}. ${errorData.error?.message || errorData.message || ''}`)
+  }
+
+  const data = await response.json()
+  
+  // Try to extract response from common response formats
+  if (data.content && data.content[0] && data.content[0].text) {
+    return data.content[0].text
+  } else if (data.choices && data.choices[0] && data.choices[0].message) {
+    return data.choices[0].message.content
+  } else if (data.response) {
+    return data.response
+  } else if (data.text) {
+    return data.text
+  } else {
+    throw new Error('Unable to parse response from custom provider')
+  }
+}
+
+// Test AI model connection with multi-provider support
+export const testAIConnection = async (testConfig?: MultiProviderConfig): Promise<{ success: boolean; message: string }> => {
   try {
     console.log('🧪 Testing AI connection...')
     
-    const config = await getAIModelConfig()
+    let config: AIModelConfig | null = null
+    
+    if (testConfig) {
+      // Convert test config to AIModelConfig format
+      config = {
+        id: `${testConfig.provider}-${testConfig.model}`,
+        name: testConfig.providerName,
+        apiEndpoint: testConfig.endpoint,
+        apiKey: testConfig.apiKey,
+        model: testConfig.model,
+        provider: testConfig.provider,
+        headers: testConfig.headers || DEFAULT_AI_MODEL.headers,
+        systemPrompt: testConfig.systemPrompt || DEFAULT_AI_MODEL.systemPrompt
+      }
+    } else {
+      config = await getAIModelConfig()
+    }
     
     if (!config || !config.apiKey) {
       return {
         success: false,
-        message: 'Claude Sonnet 4 API key not configured'
+        message: 'AI model not configured'
       }
     }
 
@@ -262,12 +366,12 @@ export const testAIConnection = async (): Promise<{ success: boolean; message: s
     if (response.toLowerCase().includes('connection successful')) {
       return {
         success: true,
-        message: 'Claude Sonnet 4 connection successful'
+        message: `${config.name} connection successful`
       }
     } else {
       return {
         success: true,
-        message: 'Claude Sonnet 4 is responding (connection working)'
+        message: `${config.name} is responding correctly`
       }
     }
   } catch (error) {
