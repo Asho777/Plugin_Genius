@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { FiCode, FiTerminal, FiEye, FiMessageSquare, FiSave, FiDownload, FiSettings, FiCopy, FiCheck, FiPlay, FiRefreshCw, FiPackage, FiLoader, FiFolder, FiFile, FiChevronRight, FiChevronDown } from 'react-icons/fi'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
-import { Message, sendMessage, getApiKey } from '../services/aiService'
+import { Message, sendMessage, getAIModelConfig } from '../services/aiService'
 import { savePlugin } from '../services/pluginService'
 import { formatCode } from '../services/codeService'
 import { executePlugin, PluginExecutionResult } from '../services/pluginExecutionService'
@@ -69,6 +69,7 @@ const CreatePluginPage = () => {
   const [previewUrl, setPreviewUrl] = useState('')
   const [expandedFolders, setExpandedFolders] = useState(new Set(['root']))
   const [isApiKeySet, setIsApiKeySet] = useState(false)
+  const [aiModelConfig, setAiModelConfig] = useState<any>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollPositionRef = useRef<number>(0)
@@ -209,16 +210,17 @@ const CreatePluginPage = () => {
     }
   }, []);
 
-  // Check if API key exists
+  // Check if AI model is configured
   useEffect(() => {
-    const checkApiKey = async () => {
-      const apiKey = await getApiKey('cursor-ai-style');
-      const hasKey = !!apiKey;
-      setApiKeyMissing(!hasKey);
-      setIsApiKeySet(hasKey);
+    const checkAIConfig = async () => {
+      const config = await getAIModelConfig();
+      const hasConfig = !!config && !!config.apiKey;
+      setApiKeyMissing(!hasConfig);
+      setIsApiKeySet(hasConfig);
+      setAiModelConfig(config);
     };
     
-    checkApiKey();
+    checkAIConfig();
   }, []);
   
   // Scroll to bottom of messages when new message is added
@@ -244,6 +246,25 @@ const CreatePluginPage = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Helper function to get display name for AI model
+  const getAIModelDisplayName = () => {
+    if (!aiModelConfig) return 'AI Model';
+    
+    // Check for multi-provider configuration first
+    const multiProviderConfig = localStorage.getItem('multi-provider-ai-config');
+    if (multiProviderConfig) {
+      try {
+        const config = JSON.parse(multiProviderConfig);
+        return config.providerName || `${config.provider} ${config.model}`;
+      } catch (e) {
+        console.error('Error parsing multi-provider config:', e);
+      }
+    }
+    
+    // Fallback to aiModelConfig
+    return aiModelConfig.name || `${aiModelConfig.provider || 'Unknown'} ${aiModelConfig.model || 'Model'}`;
+  };
 
   // Helper functions to create basic plugin files
   const createBasicPluginFile = (name: string, description: string, slug: string) => `<?php
@@ -309,23 +330,36 @@ new ${name.replace(/\s+/g, '')}();
   };
 
   const validateApiKey = async () => {
-    console.log('🔑 Validating API key...')
-    const apiKey = await getApiKey('cursor-ai-style');
-    console.log('🔑 API key check result:', { hasKey: !!apiKey, keyPrefix: apiKey?.substring(0, 10) + '...' })
+    console.log('🔑 Validating AI configuration...')
+    const config = await getAIModelConfig();
+    console.log('🔑 AI config check result:', { 
+      hasConfig: !!config, 
+      hasApiKey: !!config?.apiKey,
+      provider: config?.provider,
+      model: config?.model
+    })
     
-    if (!apiKey?.trim()) {
-      addTerminalOutput('❌ Error: Please configure your Claude Sonnet 4 API key in settings');
+    if (!config || !config.apiKey?.trim()) {
+      addTerminalOutput('❌ Error: Please configure your AI model in settings');
       return false;
     }
     
-    // Validate API key format
-    if (!apiKey.startsWith('sk-ant-')) {
-      addTerminalOutput('❌ Error: Invalid Claude Sonnet 4 API key format. Key should start with "sk-ant-"');
-      return false;
+    // Validate API key format based on provider
+    if (config.provider === 'anthropic' || !config.provider) {
+      if (!config.apiKey.startsWith('sk-ant-')) {
+        addTerminalOutput('❌ Error: Invalid Claude API key format. Key should start with "sk-ant-"');
+        return false;
+      }
+    } else if (config.provider === 'openai') {
+      if (!config.apiKey.startsWith('sk-')) {
+        addTerminalOutput('❌ Error: Invalid OpenAI API key format. Key should start with "sk-"');
+        return false;
+      }
     }
     
     setIsApiKeySet(true);
-    addTerminalOutput('✅ Claude Sonnet 4 API key validated successfully');
+    const modelName = getAIModelDisplayName();
+    addTerminalOutput(`✅ ${modelName} API key validated successfully`);
     return true;
   };
 
@@ -333,7 +367,7 @@ new ${name.replace(/\s+/g, '')}();
     console.log('🚀 Starting plugin generation process...')
     
     if (!(await validateApiKey())) {
-      console.log('❌ API key validation failed')
+      console.log('❌ AI configuration validation failed')
       return;
     }
     
@@ -374,11 +408,12 @@ Respond ONLY with valid JSON. No explanations, no markdown formatting, just the 
         }
       ];
 
-      addTerminalOutput('📂 Generating file structure with Claude Sonnet 4...');
-      console.log('📤 Sending request to Claude Sonnet 4...')
+      const modelName = getAIModelDisplayName();
+      addTerminalOutput(`📂 Generating file structure with ${modelName}...`);
+      console.log('📤 Sending request to AI model...')
       
       const response = await sendMessage(pluginMessages, pluginName);
-      console.log('📥 Received response from Claude Sonnet 4:', { responseLength: response.length })
+      console.log('📥 Received response from AI model:', { responseLength: response.length })
       
       let parsedStructure: Record<string, string>;
       try {
@@ -453,7 +488,7 @@ Respond ONLY with valid JSON. No explanations, no markdown formatting, just the 
         addTerminalOutput('💡 This might be a CORS or network connectivity issue.');
         addTerminalOutput('💡 Please check your internet connection and try again.');
       } else if (errorMessage.includes('Authentication failed') || errorMessage.includes('401')) {
-        addTerminalOutput('💡 Please verify your Claude Sonnet 4 API key in settings.');
+        addTerminalOutput('💡 Please verify your AI model API key in settings.');
       } else if (errorMessage.includes('Rate limit')) {
         addTerminalOutput('💡 Please wait a moment before trying again.');
       }
@@ -1093,12 +1128,12 @@ ${allFiles}`;
                   {isApiKeySet ? (
                     <>
                       <div className="api-status-indicator connected"></div>
-                      Claude Sonnet 4 - Connected
+                      {getAIModelDisplayName()} - Connected
                     </>
                   ) : (
                     <>
                       <div className="api-status-indicator disconnected"></div>
-                      Claude Sonnet 4 - Not Connected
+                      AI Model - Not Connected
                     </>
                   )}
                 </div>
@@ -1136,13 +1171,13 @@ ${allFiles}`;
             {apiKeyMissing && (
               <div className="api-key-warning">
                 <p>
-                  <strong>AI Configuration Required:</strong> Please configure your Claude Sonnet 4 API key in settings to use the professional WordPress development assistant.
+                  <strong>AI Configuration Required:</strong> Please configure your AI model in settings to use the professional WordPress development assistant.
                 </p>
                 <button 
                   className="api-key-button"
                   onClick={() => window.location.href = '/settings'}
                 >
-                  Configure Claude Sonnet 4
+                  Configure AI Model
                 </button>
               </div>
             )}
