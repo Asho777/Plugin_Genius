@@ -1,8 +1,6 @@
 // AI Service for Plugin Genius
 // Handles AI model configuration and communication
 
-import { saveUserApiKey, getUserApiKey } from './settingsService'
-
 export interface AIModelConfig {
   id: string
   name: string
@@ -46,22 +44,10 @@ export interface MultiProviderConfig {
   systemPrompt?: string
 }
 
-// Get AI model configuration from Supabase and localStorage
+// SECURITY FIX: Get AI model configuration from localStorage only
 export const getAIModelConfig = async (): Promise<AIModelConfig | null> => {
   try {
-    // First try to get API key from Supabase
-    let apiKey = await getUserApiKey()
-    
-    // If not in Supabase, check localStorage for backward compatibility
-    if (!apiKey) {
-      const stored = localStorage.getItem('ai-model-config')
-      if (stored) {
-        const config = JSON.parse(stored)
-        apiKey = config.apiKey
-      }
-    }
-    
-    // Check for multi-provider configuration
+    // Check for multi-provider configuration first
     const multiProviderConfig = localStorage.getItem('multi-provider-ai-config')
     if (multiProviderConfig) {
       const config: MultiProviderConfig = JSON.parse(multiProviderConfig)
@@ -79,10 +65,13 @@ export const getAIModelConfig = async (): Promise<AIModelConfig | null> => {
       }
     }
     
-    if (apiKey) {
+    // Check for legacy single-provider configuration
+    const stored = localStorage.getItem('ai-model-config')
+    if (stored) {
+      const config = JSON.parse(stored)
       return {
         ...DEFAULT_AI_MODEL,
-        apiKey: apiKey
+        ...config
       }
     }
     
@@ -93,7 +82,7 @@ export const getAIModelConfig = async (): Promise<AIModelConfig | null> => {
   }
 }
 
-// Save AI model configuration to both Supabase and localStorage
+// SECURITY FIX: Save AI model configuration to localStorage only
 export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise<boolean> => {
   try {
     // Create the final config with fixed values for Claude Sonnet 4
@@ -106,17 +95,9 @@ export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise
       headers: config.headers || DEFAULT_AI_MODEL.headers
     }
     
-    // Save API key to Supabase user profile
-    if (finalConfig.apiKey) {
-      const supabaseSuccess = await saveUserApiKey(finalConfig.apiKey)
-      if (!supabaseSuccess) {
-        console.warn('Failed to save API key to Supabase, falling back to localStorage only')
-      }
-    }
-    
-    // Also save to localStorage for backward compatibility
+    // Save to localStorage only
     localStorage.setItem('ai-model-config', JSON.stringify(finalConfig))
-    console.log('AI model configuration saved successfully')
+    console.log('AI model configuration saved successfully to localStorage')
     return true
   } catch (error) {
     console.error('Error saving AI model configuration:', error)
@@ -124,21 +105,12 @@ export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise
   }
 }
 
-// Save multi-provider AI configuration
+// SECURITY FIX: Save multi-provider AI configuration to localStorage only
 export const saveMultiProviderConfig = async (config: MultiProviderConfig): Promise<boolean> => {
   try {
-    // Save to localStorage
+    // Save to localStorage only
     localStorage.setItem('multi-provider-ai-config', JSON.stringify(config))
-    
-    // Also save API key to Supabase if it's the primary configuration
-    if (config.apiKey) {
-      const supabaseSuccess = await saveUserApiKey(config.apiKey)
-      if (!supabaseSuccess) {
-        console.warn('Failed to save API key to Supabase, falling back to localStorage only')
-      }
-    }
-    
-    console.log('Multi-provider AI configuration saved successfully')
+    console.log('Multi-provider AI configuration saved successfully to localStorage')
     return true
   } catch (error) {
     console.error('Error saving multi-provider AI configuration:', error)
@@ -146,7 +118,7 @@ export const saveMultiProviderConfig = async (config: MultiProviderConfig): Prom
   }
 }
 
-// Get API key for a specific service (legacy support)
+// SECURITY FIX: Get API key for a specific service from localStorage only
 export const getApiKey = async (service: string): Promise<string | null> => {
   try {
     // For Claude Sonnet 4, get from the AI model config
