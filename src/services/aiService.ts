@@ -17,9 +17,9 @@ export interface Message {
   content: string
 }
 
-// Default AI Model Configuration for Claude Sonnet 4
+// Default AI Model Configuration for Claude 3.5 Sonnet (latest)
 export const DEFAULT_AI_MODEL: AIModelConfig = {
-  id: 'claude-sonnet-4',
+  id: 'claude-3-5-sonnet-20241022',
   name: 'Claude 3.5 Sonnet',
   apiEndpoint: 'https://api.anthropic.com/v1/messages',
   apiKey: '',
@@ -85,7 +85,7 @@ export const getAIModelConfig = async (): Promise<AIModelConfig | null> => {
 // SECURITY FIX: Save AI model configuration to localStorage only
 export const saveAIModelConfig = async (config: Partial<AIModelConfig>): Promise<boolean> => {
   try {
-    // Create the final config with fixed values for Claude Sonnet 4
+    // Create the final config with fixed values for Claude 3.5 Sonnet
     const finalConfig: AIModelConfig = {
       ...DEFAULT_AI_MODEL,
       ...config,
@@ -121,8 +121,8 @@ export const saveMultiProviderConfig = async (config: MultiProviderConfig): Prom
 // SECURITY FIX: Get API key for a specific service from localStorage only
 export const getApiKey = async (service: string): Promise<string | null> => {
   try {
-    // For Claude Sonnet 4, get from the AI model config
-    if (service === 'cursor-ai-style' || service === 'claude-sonnet-4') {
+    // For Claude models, get from the AI model config
+    if (service === 'cursor-ai-style' || service.includes('claude')) {
       const config = await getAIModelConfig()
       return config?.apiKey || null
     }
@@ -189,6 +189,7 @@ const sendAnthropicMessage = async (config: AIModelConfig, messages: Message[], 
   }
 
   console.log('🌐 Making request to Anthropic API:', config.apiEndpoint)
+  console.log('📝 Request model:', config.model)
 
   const response = await fetch(config.apiEndpoint, {
     method: 'POST',
@@ -198,6 +199,12 @@ const sendAnthropicMessage = async (config: AIModelConfig, messages: Message[], 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
+    console.error('❌ Anthropic API Error Details:', {
+      status: response.status,
+      statusText: response.statusText,
+      model: config.model,
+      errorData
+    })
     throw new Error(`Anthropic API error: ${response.status} ${response.statusText}. ${errorData.error?.message || ''}`)
   }
 

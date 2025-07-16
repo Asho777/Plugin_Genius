@@ -58,8 +58,13 @@ const AIModelSelector: React.FC<AIModelSelectorProps> = ({
       models: [
         { 
           id: 'claude-3-5-sonnet-20241022', 
-          name: 'Claude 3.5 Sonnet', 
+          name: 'Claude 3.5 Sonnet (Latest)', 
           description: 'Most capable model for WordPress development (Recommended)' 
+        },
+        { 
+          id: 'claude-3-5-sonnet-20240620', 
+          name: 'Claude 3.5 Sonnet (June)', 
+          description: 'Previous version of Claude 3.5 Sonnet' 
         },
         { 
           id: 'claude-3-sonnet-20240229', 
@@ -72,9 +77,9 @@ const AIModelSelector: React.FC<AIModelSelectorProps> = ({
           description: 'Fast and efficient for simple tasks' 
         },
         { 
-          id: 'claude-sonnet-4', 
-          name: 'Claude Sonnet 4', 
-          description: 'Latest and most advanced Claude model' 
+          id: 'claude-3-opus-20240229', 
+          name: 'Claude 3 Opus', 
+          description: 'Most powerful Claude 3 model' 
         }
       ]
     },
